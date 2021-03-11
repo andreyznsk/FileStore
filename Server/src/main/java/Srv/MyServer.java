@@ -1,34 +1,45 @@
+package Srv;
+
+import Srv.Handler.ClientHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 public class MyServer {
 
-    public static void main(String[] args) throws IOException {
-        new MyServer().start();
-    }
+    private final List<ClientHandler> clients = new ArrayList<>();
+    private final AuthService authService;
 
+    public MyServer() {
+        this.authService = new DataBaseMySqlAuthService();
+      }
 
-    public void start() throws IOException {
+    public void start(int port) throws Exception {
+
         Selector selector = Selector.open();
         ServerSocketChannel serverSocket = ServerSocketChannel.open();
         serverSocket.socket().bind(new InetSocketAddress("localhost", 9000));
         serverSocket.configureBlocking(false);
         serverSocket.register(selector, SelectionKey.OP_ACCEPT);
-
         System.out.println("Server started");
-
+        authService.start();
         while (true) {
             selector.select();
             System.out.println("New selector event");
             Set<SelectionKey> selectionKeys = selector.selectedKeys();
             Iterator<SelectionKey> iterator = selectionKeys.iterator();
-            while (iterator.hasNext()){
+            while (iterator.hasNext()) {
                 SelectionKey selectionKey = iterator.next();
                 if (selectionKey.isAcceptable()) {
                     System.out.println("New selector acceptable event");
@@ -41,6 +52,7 @@ public class MyServer {
                 }
                 iterator.remove();
             }
+
         }
     }
 
@@ -51,11 +63,34 @@ public class MyServer {
         System.out.println("New client is connected");
     }
 
-    public void readMessage(SelectionKey key) throws IOException {
+
+    public void readMessage(SelectionKey key) throws Exception {
         SocketChannel client = (SocketChannel) key.channel();
-        ByteBuffer byteBuffer = ByteBuffer.allocate(256);
-        client.read(byteBuffer);
-        String message = new String(byteBuffer.array());
-        System.out.println("New message: " + message);
+        ClientHandler clientHandler = new ClientHandler(this, client);
+        clientHandler.handle();
+    }
+
+
+
+    public AuthService getAuthService() {
+        return authService;
+    }
+
+    public synchronized void subscribe(ClientHandler handler) throws IOException {
+        clients.add(handler);
+
+    }
+
+    public synchronized void unsubscribe(ClientHandler handler) throws IOException {
+        clients.remove(handler);
+
+    }
+
+
+    public boolean isNickBusy(String nickname) {
+        return true;
+    }
+
+    public void sendPrivateMessage(ClientHandler clientHandler, String receiver, String message) {
     }
 }
