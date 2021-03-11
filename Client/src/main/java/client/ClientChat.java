@@ -143,9 +143,9 @@ public class ClientChat extends Application {
     }
 
     public void activeChatDialog(String nickname) {
-        historyBuilder = new ChatHistoryBuilder(nickname);
-        viewController.setHistoryBuilder(historyBuilder);
-        network.setHistoryBuilder(historyBuilder);
+        //historyBuilder = new ChatHistoryBuilder(nickname);
+        //viewController.setHistoryBuilder(historyBuilder);
+       // network.setHistoryBuilder(historyBuilder);
         primaryStage.setTitle(nickname);
         state = ClientChatState.CHAT;
         authDialogStage.close();

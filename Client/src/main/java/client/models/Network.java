@@ -9,10 +9,7 @@ import javafx.application.Platform;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
@@ -50,7 +47,7 @@ public class Network {
         public boolean connect() {
             try {
                 clientSocket = SocketChannel.open(new InetSocketAddress(host, port));
-
+                clientSocket.configureBlocking(false);
                 return true;
             } catch (IOException e) {
                 System.err.println("Соединение не было установлено!");
@@ -76,7 +73,6 @@ public class Network {
             Thread thread = new Thread(() -> {
                 try {
                     while (true) {
-                        System.out.println("read command");
                         Command command = readCommand();
                         if (command == null) {
                             continue;
@@ -184,7 +180,7 @@ public class Network {
         }
 
         public void close() {
-            historyBuilder.closeChatHistoryFile();
+
             try {
                 if (clientSocket != null && clientSocket.isConnected()) {
                     clientSocket.close();
@@ -196,7 +192,6 @@ public class Network {
 
         private Command readCommand() throws IOException {
             Command command = null;
-            System.out.println("read command");
             byte[] data = new byte[1024];
             ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
             int r = clientSocket.read(byteBuffer);

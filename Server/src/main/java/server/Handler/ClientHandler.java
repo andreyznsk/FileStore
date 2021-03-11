@@ -158,7 +158,6 @@ public class ClientHandler {
 
     public void sendCommand(Command command) throws IOException {
         byte[] data = SerializationUtils.serialize(command);
-        System.out.println("send command " + data);
         serverSocket.write(ByteBuffer.wrap(data));
     }
 

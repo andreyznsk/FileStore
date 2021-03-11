@@ -84,7 +84,7 @@ public class ViewController {
     }
 
     public void appendMessage(String message) {
-        historyBuilder.writeChatHistory(message);
+        //historyBuilder.writeChatHistory(message);
         chatHistory.appendText(message);
         chatHistory.appendText(System.lineSeparator());
     }
@@ -99,7 +99,7 @@ public class ViewController {
 
     public void setHistoryBuilder(ChatHistoryBuilder historyBuilder) {
 
-        this.historyBuilder = historyBuilder;
+        //this.historyBuilder = historyBuilder;
         chatHistory.appendText(historyBuilder.readChatHistory());
 
     }

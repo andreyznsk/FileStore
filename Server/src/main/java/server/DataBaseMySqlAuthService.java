@@ -19,7 +19,7 @@ public class DataBaseMySqlAuthService implements AuthService {
     private static void prepareAllStatements() throws SQLException {
         psSelect = connection.prepareStatement("SELECT nickname_fs, defdir from users_fs where login_fs= ? AND Password_fs = sha(?);  ");
         psUpdate = connection.prepareStatement("UPDATE users SET nickname = ? WHERE login = ? AND password = ?;");
-        psInsert = connection.prepareStatement("INSERT INTO users (login,password,nickname) VALUES(?,?,?);");
+        psInsert = connection.prepareStatement("INSERT INTO users_fs (nickname_fs, login_fs, Password_fs) VALUES (?, ?,sha(?));");
         psSelectAllNick = connection.prepareStatement("SELECT nickname, login FROM users;");
     }
 
@@ -77,6 +77,7 @@ public class DataBaseMySqlAuthService implements AuthService {
                 System.out.println("NickName: " + rs.getString(1));
                 System.out.println("DefDir: " + rs.getString(2));
                 System.out.println("Auth OK");
+                return rs.getString(1);
             }
 
         } catch (SQLException e) {
