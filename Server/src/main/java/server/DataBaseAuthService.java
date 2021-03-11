@@ -1,15 +1,16 @@
-package Srv;
-
+package server;
 
 
 import java.io.File;
-
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.*;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
-public class DataBaseMySqlAuthService implements AuthService {
-    private static final String url = "jdbc:mysql://localhost:3306/usersforfilesorage";
-    private static final String user = "filestorage";
-    private static final String password = "passwd";
+public class DataBaseAuthService implements AuthService {
+    private static final Logger logger = Logger.getLogger(MyServer.class.getName());
     private static Connection connection;
     private static Statement stmt;
     private static PreparedStatement psSelect;
@@ -18,24 +19,32 @@ public class DataBaseMySqlAuthService implements AuthService {
     private static PreparedStatement psSelectAllNick;
     private static PreparedStatement psSelectNicByLoginPass;
 
+    static {
+        LogManager manager = LogManager.getLogManager();
+        try {
+            manager.readConfiguration(new FileInputStream("logging.properties"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static void prepareAllStatements() throws SQLException {
-        psSelect = connection.prepareStatement("SELECT nickname_fs, defdir from users_fs where login_fs= ? AND Password_fs = sha(?);  ");
-        psUpdate = connection.prepareStatement("UPDATE users SET nickname = ? WHERE login = ? AND password = ?;");
-        psInsert = connection.prepareStatement("INSERT INTO users (login,password,nickname) VALUES(?,?,?);");
-        psSelectAllNick = connection.prepareStatement("SELECT nickname, login FROM users;");
+        psSelect = connection.prepareStatement("SELECT nickname FROM users WHERE login = ? AND password = ?;");
+        psUpdate = connection.prepareStatement("UPDATE users SET nickname = ? WHERE login = ? AND password = ?");
+        psInsert = connection.prepareStatement("INSERT INTO users (login,password,nickname) VALUES(?,?,?)");
+        psSelectAllNick = connection.prepareStatement("SELECT nickname, login FROM users");
     }
 
     private static void connect() throws Exception {
-
-        connection = DriverManager.getConnection(url, user, password);
+        Class.forName("org.sqlite.JDBC");
+        connection = DriverManager.getConnection("jdbc:sqlite:main.db");
         stmt = connection.createStatement();
-
     }
 
     private static void disconnect() {
         try {
             stmt.close();
-            System.out.println("DB Close");
+            logger.log(Level.SEVERE,"Data base has been closed");
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -50,21 +59,29 @@ public class DataBaseMySqlAuthService implements AuthService {
 
     @Override
     public void start() {
-        System.out.println("Auth service is running");
+        logger.log(Level.SEVERE,"Auth service is running");
+        //System.out.println("Auth service is running");
 
         try {
             connect();
             prepareAllStatements();
-            System.out.println("Connect to bd main is successful");
+            logger.log(Level.SEVERE,"Connect to bd main is successful");
+            //System.out.println("Connect to bd main is successful");
         } catch (Exception e) {
-            System.err.println("Auth serv err");
-            e.printStackTrace();
-            }
+            logger.log(Level.WARNING,"Auth service err",e);
+        } finally {
+            //disconnect();
+        }
+
+
+
+
     }
 
     @Override
     public void stop() {
-        System.out.println("Auth service has been stopped");
+        logger.log(Level.SEVERE,"Auth service has been stopped");
+        //System.out.println("Auth service has been stopped");
         disconnect();
     }
 
@@ -76,15 +93,12 @@ public class DataBaseMySqlAuthService implements AuthService {
             psSelect.setString(2,password);
             ResultSet rs = psSelect.executeQuery();
             while (rs.next()){
-                System.out.println("NickName: " + rs.getString(1));
-                System.out.println("DefDir: " + rs.getString(2));
-                System.out.println("Auth OK");
+                //System.out.println(rs.getString("nickname"));
+                return rs.getString("nickname");
             }
 
         } catch (SQLException e) {
-            //logger.log(Level.WARNING,"DB Error",e);
-            System.err.println("DB err");
-            e.printStackTrace();
+            logger.log(Level.WARNING,"DB Error",e);
         }
         return null;
     }
@@ -108,14 +122,14 @@ public class DataBaseMySqlAuthService implements AuthService {
                 System.out.println("nick: " + dataBaseNick);
                 System.out.println("login: " + dataBaseLogin);
                 if (dataBaseNick.equals(nickname)||dataBaseLogin.equals(login)) {
-                    //logger.log(Level.SEVERE,"Error, Nick or Login exists");
-                    System.out.printf("Error, Nick or Login exists");
+                    logger.log(Level.SEVERE,"Error, Nick or Login exists");
+                    //System.out.printf("Error, Nick or Login exists");
                    return 0;
                 }
             }
 
             if(psInsert.executeUpdate()==1) {
-                //logger.log(Level.SEVERE,"Insert is OK");
+                logger.log(Level.SEVERE,"Insert is OK");
                 System.out.println("Insert is OK");
                 return 1;
             }
@@ -123,9 +137,7 @@ public class DataBaseMySqlAuthService implements AuthService {
                 //ResultSet rs = psSelect.executeQuery();
 
         } catch (SQLException e) {
-            //logger.log(Level.SEVERE, "DB Error",e);
-            System.err.println("DB ERROR");
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "DB Error",e);
 
 
         }
@@ -142,30 +154,27 @@ public class DataBaseMySqlAuthService implements AuthService {
             //System.out.printf("Login: %s\npassword: %s\nNickname: %s\n",login,password,nickname);
             String oldNicname = getNickByLoginPass(login, password);
 
-            File file = null;
+      /*      File file = null;
             if (oldNicname != null)
 
-
+                file = new File(ChatHistoryBuilder.getFileName(nickname));
             //System.out.println("oldNick = " + oldNicname);
 
             if (psUpdate.executeUpdate() == 1) {
-                //logger.log(Level.SEVERE,"Update is OK");
-                System.out.println("Update is OK");
+                logger.log(Level.SEVERE,"Update is OK");
+                //System.out.println("Update is OK");
 
+                file.renameTo(new File(ChatHistoryBuilder.getFileName(nickname)));
+                file.delete();
                 return 1;
-            }
+            }*/
 
             //ResultSet rs = psSelect.executeQuery();
 
         } catch (SQLException e) {
-            //logger.log(Level.SEVERE, "DB Error",e);
-            System.out.println(e);
-            e.printStackTrace();
-
+            logger.log(Level.SEVERE, "DB Error",e);
         } catch (Exception e) {
-            //logger.log(Level.SEVERE, "Error",e);
-            System.out.println(e);
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Error",e);
         }
             return 0;
 

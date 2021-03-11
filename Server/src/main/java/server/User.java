@@ -1,4 +1,4 @@
-package Srv;
+package server;
 
 import java.util.Objects;
 
@@ -6,7 +6,6 @@ public class User {
     private final String login;
     private final String password;
     private final String nickname;
-    //private final String url;
 
     public User(String login, String password, String nickname) {
         this.login = login;

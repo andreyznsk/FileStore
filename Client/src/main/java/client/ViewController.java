@@ -1,5 +1,6 @@
 package client;
 
+import client.models.ChatHistoryBuilder;
 import client.models.Network;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -24,12 +25,16 @@ public class ViewController {
 
    // private ListView<String> usersList;
    private String selectedRecipient;
-
+   private ChatHistoryBuilder historyBuilder;
 
 
     @FXML
     public void initialize() {
+ //       usersList.setItems(FXCollections.observableArrayList(Main.USERS_TEST_DATA));
+//        sendButton.setOnAction(event -> sendMessage());
+//        textField.setOnAction(event -> sendMessage());
 
+        //chatHistory.appendText(historyBuilder.readChatHistory());
         usersList.setItems(FXCollections.observableArrayList(ClientChat.USERS_TEST_DATA));
 
         usersList.setCellFactory(lv -> {
@@ -61,20 +66,25 @@ public class ViewController {
         appendMessage("Я: " + message);
         textField.clear();
 
+        try {
             if (selectedRecipient != null) {
-                System.out.println(message);
+                network.sendPrivateMessage(selectedRecipient, message);
             } else {
-                System.out.println(message);
+                network.sendMessage(message);
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            String errorMessage = "Failed to send message";
+            ClientChat.showNetworkError(e.getMessage(), errorMessage, primaryStage);
         }
-
+    }
 
     public void setNetwork(Network network) {
         this.network = network;
     }
 
     public void appendMessage(String message) {
-
+        historyBuilder.writeChatHistory(message);
         chatHistory.appendText(message);
         chatHistory.appendText(System.lineSeparator());
     }
@@ -85,6 +95,13 @@ public class ViewController {
 
     public TextField getTextField() {
         return textField;
+    }
+
+    public void setHistoryBuilder(ChatHistoryBuilder historyBuilder) {
+
+        this.historyBuilder = historyBuilder;
+        chatHistory.appendText(historyBuilder.readChatHistory());
+
     }
 
 }

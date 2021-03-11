@@ -1,4 +1,4 @@
-package Srv;
+package server;
 
 import java.io.IOException;
 
@@ -17,7 +17,7 @@ public class ServerApp {
 
             try {
                 new MyServer().start(port);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }

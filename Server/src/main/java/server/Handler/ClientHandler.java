@@ -1,26 +1,22 @@
-package Srv.Handler;
+package server.Handler;
 
 import ClaintServer.Command;
 import ClaintServer.CommandType;
 import ClaintServer.commands.AuthCommandData;
 import ClaintServer.commands.AuthRegData;
-
 import ClaintServer.commands.PrivateMessageCommandData;
 import ClaintServer.commands.PublicMessageCommandData;
-import Srv.MyServer;
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import org.apache.commons.lang3.SerializationUtils;
+import server.MyServer;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-
-
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -29,24 +25,22 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-
 import static ClaintServer.Command.*;
 
 
 public class ClientHandler {
-
+    private static final Logger logger = Logger.getLogger(MyServer.class.getName());
     private final MyServer myServer;
-    private final SocketChannel clientSocket;
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(256);
+    private final SocketChannel serverSocket;
 
     private ObjectInputStream in;
     private ObjectOutputStream out;
 
     private String nickname;
 
-    public ClientHandler(MyServer myServer, SocketChannel clientSocket) {
+    public ClientHandler(MyServer myServer, SocketChannel serverSocket) {
         this.myServer = myServer;
-        this.clientSocket = clientSocket;
+        this.serverSocket = serverSocket;
         LogManager manager = LogManager.getLogManager();
         try {
             manager.readConfiguration(new FileInputStream("logging.properties"));
@@ -58,26 +52,48 @@ public class ClientHandler {
     public void handle() throws IOException {
 
 
-        try {
-            authentication();
-            // readMessages();
-        } catch (IOException e) {
+        ExecutorService executorService = Executors.newCachedThreadPool();
 
-            e.printStackTrace();
-        } finally {
+        executorService.execute(() -> {
             try {
-                closeConnection();
+                authentication();
+                readMessages();
             } catch (IOException e) {
-                System.err.println("Failed to close connection!");
+              e.printStackTrace();
+            } finally {
+                try {
+                    closeConnection();
+                } catch (IOException e) {
+                  System.err.println("Failed to close connection!");
+                }
             }
-        }
+        });
     }
 
-
-
     private void authentication() throws IOException {
-        readCommand();
-       /* while (true) {
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                if(nickname==null) {//если логин не получен закрыть соединение
+                    try {
+                        sendCommand(closeByTimer());//Посылаем клиенту команду о разрыве соединения по таймеру
+                       // logger.log(Level.SEVERE, "Закрыаем соединение");
+                        System.out.println("Закрыаем соединение");
+                        closeConnection();
+
+                    } catch (IOException e) {
+                        //logger.log(Level.WARNING, "Не смогли прервать подключение",e);
+                       System.err.println("Не смогли прервать подключение");
+
+                    }
+                }
+            }
+        };
+
+        Timer timer = new Timer(true);
+
+        timer.schedule(timerTask, 120000);//Запуск отдельного потока, который проверят ести ли логин
+        while (true) {
             Command command = readCommand();
             if (command == null) {
                 continue;
@@ -89,6 +105,7 @@ public class ClientHandler {
                 String password = data.getPassword();
                 String nickname = data.getNickname();
                 if (myServer.getAuthService().insertUser(login,password,nickname)==0) {
+                    logger.log(Level.SEVERE, "Такой ник уже есть!!");
                     sendCommand(errorCommand("Такой ник уже есть!!"));
                     continue;
                 } else sendCommand(confirmationCommand("Регистрация прошла успешно!"));
@@ -103,9 +120,11 @@ public class ClientHandler {
                 if (myServer.getAuthService().updateUser(login,password,nickname)==0) {
 
                     sendCommand(errorCommand("Логин или пароль некорркетны!"));
+                    logger.log(Level.SEVERE, "Логин или пароль некорркетны!");
                     continue;
                 } else {
                     sendCommand(confirmationCommand("Ник успешно изменен."));
+                    logger.log(Level.SEVERE, "Ник успешно изменен.");
                 }
             }
 
@@ -117,39 +136,60 @@ public class ClientHandler {
                 String nickname = myServer.getAuthService().getNickByLoginPass(login, password);
                 if (nickname == null) {
                     sendCommand(errorCommand("Некорректные логин или пароль!"));
+                    logger.log(Level.SEVERE, "Некорректные логин или пароль!");
                     continue;
                 }
 
                 if (myServer.isNickBusy(nickname)) {
                     sendCommand(errorCommand("Такой пользователь уже вошел в чат!"));
+                    logger.log(Level.SEVERE, "Такой пользователь уже вошел в чат!");
                     continue;
                 }
 
                 sendCommand(authOkCommand(nickname));
                 setNickname(nickname);
+                logger.log(Level.SEVERE, String.format("Пользователь '%s' зашел в чат!", nickname));
+                myServer.broadcastMessage(String.format("Пользователь '%s' зашел в чат!", nickname), null);
                 myServer.subscribe(this);
                 return;
             }
-        }*/
+        }
     }
 
     public void sendCommand(Command command) throws IOException {
-        out.writeObject(command);
+        byte[] data = SerializationUtils.serialize(command);
+        System.out.println("send command " + data);
+        serverSocket.write(ByteBuffer.wrap(data));
     }
 
     private Command readCommand() throws IOException {
         Command command = null;
+        byte[] data = new byte[1024];
+        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+        int r = serverSocket.read(byteBuffer);
+        if(r!=0) {
 
-            clientSocket.read(byteBuffer);
-        //SerializationUtils.deserialize(byteBuffer.array());
-        System.out.println(byteBuffer.array());
-        byteBuffer.clear();
+            //System.out.println(r);
+            while (r != 0) {
+                byteBuffer.flip();
+                int i = 0;
+                while (byteBuffer.hasRemaining()) {
+                    data[i] = byteBuffer.get();
+                    //System.out.println(data[i]);
+                    i++;
+                }
+                byteBuffer.clear();
+                r = serverSocket.read(byteBuffer);
+            }
+            //System.out.println(Arrays.toString(data));
+            command = SerializationUtils.deserialize(data);
+        }
+
         return command;
     }
 
     private void readMessages() throws IOException {
-        readCommand();
-        /*while (true) {
+        while (true) {
             Command command = readCommand();
             if (command == null) {
                 continue;
@@ -166,7 +206,7 @@ public class ClientHandler {
                 case PUBLIC_MESSAGE: {
                     PublicMessageCommandData data = (PublicMessageCommandData) command.getData();
                     String message = data.getMessage();
-                   // myServer.broadcastMessage(message, this);
+                    myServer.broadcastMessage(message, this);
                     break;
                 }
                 case END:
@@ -175,12 +215,12 @@ public class ClientHandler {
                     throw new IllegalArgumentException("Unknown command type: " + command.getType());
 
             }
-        }*/
+        }
     }
 
     private void closeConnection() throws IOException {
         myServer.unsubscribe(this);
-        clientSocket.close();
+        serverSocket.close();
     }
 
 
@@ -200,3 +240,4 @@ public class ClientHandler {
         this.nickname = nickname;
     }
 }
+

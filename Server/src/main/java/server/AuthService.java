@@ -1,4 +1,4 @@
-package Srv;
+package server;
 public interface AuthService {
 
     void start();

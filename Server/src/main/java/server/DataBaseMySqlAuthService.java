@@ -1,17 +1,13 @@
-package Srv;
-
+package server;
 
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.sql.*;
-import java.util.logging.Level;
-import java.util.logging.LogManager;
-import java.util.logging.Logger;
 
-public class DataBaseAuthService implements AuthService {
-    private static final Logger logger = Logger.getLogger(MyServer.class.getName());
+public class DataBaseMySqlAuthService implements AuthService {
+    private static final String url = "jdbc:mysql://localhost:3306/usersforfilesorage";
+    private static final String user = "filestorage";
+    private static final String password = "passwd";
     private static Connection connection;
     private static Statement stmt;
     private static PreparedStatement psSelect;
@@ -20,32 +16,24 @@ public class DataBaseAuthService implements AuthService {
     private static PreparedStatement psSelectAllNick;
     private static PreparedStatement psSelectNicByLoginPass;
 
-    static {
-        LogManager manager = LogManager.getLogManager();
-        try {
-            manager.readConfiguration(new FileInputStream("logging.properties"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private static void prepareAllStatements() throws SQLException {
-        psSelect = connection.prepareStatement("SELECT nickname FROM users WHERE login = ? AND password = ?;");
-        psUpdate = connection.prepareStatement("UPDATE users SET nickname = ? WHERE login = ? AND password = ?");
-        psInsert = connection.prepareStatement("INSERT INTO users (login,password,nickname) VALUES(?,?,?)");
-        psSelectAllNick = connection.prepareStatement("SELECT nickname, login FROM users");
+        psSelect = connection.prepareStatement("SELECT nickname_fs, defdir from users_fs where login_fs= ? AND Password_fs = sha(?);  ");
+        psUpdate = connection.prepareStatement("UPDATE users SET nickname = ? WHERE login = ? AND password = ?;");
+        psInsert = connection.prepareStatement("INSERT INTO users (login,password,nickname) VALUES(?,?,?);");
+        psSelectAllNick = connection.prepareStatement("SELECT nickname, login FROM users;");
     }
 
     private static void connect() throws Exception {
-        Class.forName("org.sqlite.JDBC");
-        connection = DriverManager.getConnection("jdbc:sqlite:main.db");
+
+        connection = DriverManager.getConnection(url, user, password);
         stmt = connection.createStatement();
+
     }
 
     private static void disconnect() {
         try {
             stmt.close();
-            logger.log(Level.SEVERE,"Data base has been closed");
+            System.out.println("DB Close");
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -60,29 +48,21 @@ public class DataBaseAuthService implements AuthService {
 
     @Override
     public void start() {
-        logger.log(Level.SEVERE,"Auth service is running");
-        //System.out.println("Auth service is running");
+        System.out.println("Auth service is running");
 
         try {
             connect();
             prepareAllStatements();
-            logger.log(Level.SEVERE,"Connect to bd main is successful");
-            //System.out.println("Connect to bd main is successful");
+            System.out.println("Connect to bd main is successful");
         } catch (Exception e) {
-            logger.log(Level.WARNING,"Auth service err",e);
-        } finally {
-            //disconnect();
-        }
-
-
-
-
+            System.err.println("Auth serv err");
+            e.printStackTrace();
+            }
     }
 
     @Override
     public void stop() {
-        logger.log(Level.SEVERE,"Auth service has been stopped");
-        //System.out.println("Auth service has been stopped");
+        System.out.println("Auth service has been stopped");
         disconnect();
     }
 
@@ -94,12 +74,15 @@ public class DataBaseAuthService implements AuthService {
             psSelect.setString(2,password);
             ResultSet rs = psSelect.executeQuery();
             while (rs.next()){
-                //System.out.println(rs.getString("nickname"));
-                return rs.getString("nickname");
+                System.out.println("NickName: " + rs.getString(1));
+                System.out.println("DefDir: " + rs.getString(2));
+                System.out.println("Auth OK");
             }
 
         } catch (SQLException e) {
-            logger.log(Level.WARNING,"DB Error",e);
+            //logger.log(Level.WARNING,"DB Error",e);
+            System.err.println("DB err");
+            e.printStackTrace();
         }
         return null;
     }
@@ -123,14 +106,14 @@ public class DataBaseAuthService implements AuthService {
                 System.out.println("nick: " + dataBaseNick);
                 System.out.println("login: " + dataBaseLogin);
                 if (dataBaseNick.equals(nickname)||dataBaseLogin.equals(login)) {
-                    logger.log(Level.SEVERE,"Error, Nick or Login exists");
-                    //System.out.printf("Error, Nick or Login exists");
+                    //logger.log(Level.SEVERE,"Error, Nick or Login exists");
+                    System.out.printf("Error, Nick or Login exists");
                    return 0;
                 }
             }
 
             if(psInsert.executeUpdate()==1) {
-                logger.log(Level.SEVERE,"Insert is OK");
+                //logger.log(Level.SEVERE,"Insert is OK");
                 System.out.println("Insert is OK");
                 return 1;
             }
@@ -138,7 +121,9 @@ public class DataBaseAuthService implements AuthService {
                 //ResultSet rs = psSelect.executeQuery();
 
         } catch (SQLException e) {
-            logger.log(Level.SEVERE, "DB Error",e);
+            //logger.log(Level.SEVERE, "DB Error",e);
+            System.err.println("DB ERROR");
+            e.printStackTrace();
 
 
         }
@@ -158,22 +143,27 @@ public class DataBaseAuthService implements AuthService {
             File file = null;
             if (oldNicname != null)
 
+
             //System.out.println("oldNick = " + oldNicname);
 
             if (psUpdate.executeUpdate() == 1) {
-                logger.log(Level.SEVERE,"Update is OK");
-                //System.out.println("Update is OK");
+                //logger.log(Level.SEVERE,"Update is OK");
+                System.out.println("Update is OK");
 
-                file.delete();
                 return 1;
             }
 
             //ResultSet rs = psSelect.executeQuery();
 
         } catch (SQLException e) {
-            logger.log(Level.SEVERE, "DB Error",e);
+            //logger.log(Level.SEVERE, "DB Error",e);
+            System.out.println(e);
+            e.printStackTrace();
+
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Error",e);
+            //logger.log(Level.SEVERE, "Error",e);
+            System.out.println(e);
+            e.printStackTrace();
         }
             return 0;
 

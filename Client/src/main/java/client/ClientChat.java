@@ -1,5 +1,6 @@
 package client;
 
+import client.models.ChatHistoryBuilder;
 import client.models.ClientChatState;
 import client.models.Network;
 import javafx.application.Application;
@@ -11,6 +12,10 @@ import javafx.scene.control.Alert;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +31,7 @@ public class ClientChat extends Application {
     private Stage primaryStage;
     private Stage authDialogStage;
 
+    private ChatHistoryBuilder historyBuilder;
     private Network network;
     private ViewController viewController;
 
@@ -74,9 +80,11 @@ public class ClientChat extends Application {
         network.waitMessages(viewController);
 
         primaryStage.setOnCloseRequest(event -> {
-                //network.sendMessage("/end");
-
-
+            try {
+                network.sendMessage("/end");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             network.close();
         });
         //regController.setNetwork(network);
@@ -135,7 +143,9 @@ public class ClientChat extends Application {
     }
 
     public void activeChatDialog(String nickname) {
-
+        historyBuilder = new ChatHistoryBuilder(nickname);
+        viewController.setHistoryBuilder(historyBuilder);
+        network.setHistoryBuilder(historyBuilder);
         primaryStage.setTitle(nickname);
         state = ClientChatState.CHAT;
         authDialogStage.close();

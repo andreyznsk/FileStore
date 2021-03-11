@@ -192,3 +192,53 @@ FINE: X509Certificate: Alg:SHA256withRSA, Serial:2, Subject:CN=MySQL_Server_8.0.
 FINE: X509Certificate: Alg:SHA256withRSA, Serial:1, Subject:CN=MySQL_Server_8.0.23_Auto_Generated_CA_Certificate, Issuer:CN=MySQL_Server_8.0.23_Auto_Generated_CA_Certificate, Key type:RSA, Length:2048, Cert Id:536361179, Valid from:Thu Feb 04 16:02:26 NOVT 2021, Valid until:Sun Feb 02 16:02:26 NOVT 2031
 мар 11, 2021 11:45:50 AM jdk.internal.event.EventHelper logTLSHandshakeEvent
 FINE:  TLSHandshake: localhost:3306, TLSv1.2, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, -15253997
+мар 11, 2021 9:07:01 PM server.MyServer start
+SEVERE: Сервер был запущен
+мар 11, 2021 9:07:01 PM server.DataBaseAuthService start
+SEVERE: Auth service is running
+мар 11, 2021 9:07:01 PM server.DataBaseAuthService start
+WARNING: Auth service err
+java.lang.ClassNotFoundException: org.sqlite.JDBC
+	at java.net.URLClassLoader.findClass(URLClassLoader.java:382)
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:418)
+	at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:355)
+	at java.lang.ClassLoader.loadClass(ClassLoader.java:351)
+	at java.lang.Class.forName0(Native Method)
+	at java.lang.Class.forName(Class.java:264)
+	at server.DataBaseAuthService.connect(DataBaseAuthService.java:39)
+	at server.DataBaseAuthService.start(DataBaseAuthService.java:66)
+	at server.MyServer.start(MyServer.java:37)
+	at server.ServerApp.main(ServerApp.java:19)
+
+мар 11, 2021 9:07:01 PM server.MyServer waitAndProcessNewClientConnection
+SEVERE: Ожидание нового подключения....
+мар 11, 2021 9:22:31 PM server.Handler.ClientHandler authentication
+SEVERE: Некорректные логин или пароль!
+мар 11, 2021 9:22:46 PM server.Handler.ClientHandler authentication
+SEVERE: Некорректные логин или пароль!
+мар 11, 2021 9:23:12 PM server.Handler.ClientHandler authentication
+SEVERE: Такой ник уже есть!!
+мар 11, 2021 9:23:23 PM server.Handler.ClientHandler authentication
+SEVERE: Логин или пароль некорркетны!
+мар 11, 2021 9:23:26 PM server.Handler.ClientHandler authentication
+SEVERE: Логин или пароль некорркетны!
+мар 11, 2021 9:23:28 PM server.Handler.ClientHandler authentication
+SEVERE: Такой ник уже есть!!
+мар 11, 2021 9:23:35 PM server.Handler.ClientHandler authentication
+SEVERE: Логин или пароль некорркетны!
+мар 11, 2021 9:23:40 PM server.Handler.ClientHandler authentication
+SEVERE: Логин или пароль некорркетны!
+мар 11, 2021 9:23:42 PM server.Handler.ClientHandler authentication
+SEVERE: Такой ник уже есть!!
+мар 11, 2021 9:23:48 PM server.Handler.ClientHandler authentication
+SEVERE: Некорректные логин или пароль!
+мар 11, 2021 9:23:50 PM server.Handler.ClientHandler authentication
+SEVERE: Некорректные логин или пароль!
+мар 11, 2021 9:25:43 PM server.Handler.ClientHandler authentication
+SEVERE: Некорректные логин или пароль!
+мар 11, 2021 9:28:12 PM server.Handler.ClientHandler authentication
+SEVERE: Некорректные логин или пароль!
+мар 11, 2021 9:29:20 PM server.Handler.ClientHandler authentication
+SEVERE: Некорректные логин или пароль!
+мар 11, 2021 9:30:07 PM server.Handler.ClientHandler authentication
+SEVERE: Некорректные логин или пароль!
