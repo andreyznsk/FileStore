@@ -1,9 +1,7 @@
-package ClaintServer;
+package ClientServer;
 
 
-
-import ClaintServer.commands.*;
-
+import ClientServer.commands.*;
 
 import java.io.Serializable;
 import java.util.List;

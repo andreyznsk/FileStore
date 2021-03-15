@@ -1,11 +1,9 @@
 package server.Handler;
 
-import ClaintServer.Command;
-import ClaintServer.CommandType;
-import ClaintServer.commands.AuthCommandData;
-import ClaintServer.commands.AuthRegData;
-import ClaintServer.commands.PrivateMessageCommandData;
-import ClaintServer.commands.PublicMessageCommandData;
+import commands.AuthCommandData;
+import commands.AuthRegData;
+import commands.PrivateMessageCommandData;
+import commands.PublicMessageCommandData;
 import org.apache.commons.lang3.SerializationUtils;
 import server.MyServer;
 
@@ -25,7 +23,6 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-import static ClaintServer.Command.*;
 
 
 public class ClientHandler {

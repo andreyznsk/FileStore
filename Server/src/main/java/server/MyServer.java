@@ -1,6 +1,5 @@
 package server;
 
-import ClaintServer.Command;
 import server.Handler.ClientHandler;
 
 import java.io.FileInputStream;
@@ -26,7 +25,7 @@ public class MyServer {
     }
 
     public void start(int port) throws IOException {
-
+            ClientServer.Command cmd;
             Selector selector = Selector.open();
             ServerSocketChannel serverSocket = ServerSocketChannel.open();
             serverSocket.socket().bind(new InetSocketAddress("localhost", port));

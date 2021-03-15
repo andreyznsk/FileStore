@@ -1,4 +1,4 @@
-package ClaintServer;
+package ClientServer;
 
 public enum CommandType {
     AUTH,

@@ -1,8 +1,8 @@
 package client.models;
 
 
-import ClaintServer.Command;
-import ClaintServer.commands.*;
+import ClientServer.Command;
+import ClientServer.commands.*;
 import client.ClientChat;
 import client.ViewController;
 import javafx.application.Platform;
@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 
-import static ClaintServer.Command.*;
+import static ClientServer.Command.*;
 
 public class Network {
 
