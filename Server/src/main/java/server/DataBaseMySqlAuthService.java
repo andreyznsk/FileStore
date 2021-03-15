@@ -33,16 +33,12 @@ public class DataBaseMySqlAuthService implements AuthService {
     private static void disconnect() {
         try {
             stmt.close();
-            System.out.println("DB Close");
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        try {
             connection.close();
+            System.out.println("DB Close");
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
     }
 
 
@@ -67,8 +63,8 @@ public class DataBaseMySqlAuthService implements AuthService {
     }
 
     @Override
-    public String getNickByLoginPass(String login, String password) {//Изменил на метод идентификации из БД.
-
+    public String[] getNickByLoginPass(String login, String password) {//Изменил на метод идентификации из БД.
+        String[] str = new String[2];
         try {//Блок провеки через подготовленный запрос
             psSelect.setString(1,login);
             psSelect.setString(2,password);
@@ -77,11 +73,12 @@ public class DataBaseMySqlAuthService implements AuthService {
                 System.out.println("NickName: " + rs.getString(1));
                 System.out.println("DefDir: " + rs.getString(2));
                 System.out.println("Auth OK");
-                return rs.getString(1);
+                 str[0] = rs.getString(1);
+                 str[1] = rs.getString(2);
+                 return str;
             }
 
         } catch (SQLException e) {
-            //logger.log(Level.WARNING,"DB Error",e);
             System.err.println("DB err");
             e.printStackTrace();
         }
@@ -139,10 +136,10 @@ public class DataBaseMySqlAuthService implements AuthService {
             psUpdate.setString(2, login);
             psUpdate.setString(3, password);
             //System.out.printf("Login: %s\npassword: %s\nNickname: %s\n",login,password,nickname);
-            String oldNicname = getNickByLoginPass(login, password);
+            String[] oldNicname = getNickByLoginPass(login, password);
 
             File file = null;
-            if (oldNicname != null)
+            if (oldNicname[0] != null)
 
 
             //System.out.println("oldNick = " + oldNicname);

@@ -4,7 +4,7 @@ public interface AuthService {
     void start();
     void stop();
 
-    String getNickByLoginPass(String login, String password);
+    String[] getNickByLoginPass(String login, String password);
 
     default int insertUser(String login, String password, String nickname) {
         System.out.println("Incorrect class");

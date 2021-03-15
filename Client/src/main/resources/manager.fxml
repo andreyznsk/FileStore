@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="center" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/11.0.1" fx:controller="client.ViewController">
+    <MenuBar>
+        <Menu text="File">
+            <MenuItem onAction="#menuItemFileExit" text="Exit" />
+        </Menu>
+    </MenuBar>
+   <HBox spacing="5">
+
+      <children>
+         <VBox maxWidth="400" HBox.hgrow="ALWAYS">
+             <HBox>
+                 <ComboBox fx:id="disksBox" onAction="#selectDiscAction"/>
+                 <TextField fx:id="pathField" HBox.hgrow="ALWAYS" editable="false"/>
+                 <Button text="Вверх" onAction="#btnPathAction"/>
+             </HBox>
+
+               <TableView fx:id="filesTable" maxHeight="Infinity" />
+
+
+         </VBox>
+
+         <VBox maxWidth="400" HBox.hgrow="ALWAYS">
+             <HBox>
+                <TextField fx:id="remotePathField" HBox.hgrow="ALWAYS" editable="false" />
+                <Button text="Вверх" onAction="#btnRemoutePathAction"/>
+             </HBox>
+                <TableView fx:id="remoteFilesTable" maxHeight="Infinity" />
+
+         </VBox>
+
+      </children>
+       <padding>
+           <Insets bottom="5" left="5" right="5" top="5" />
+       </padding>
+   </HBox>
+    <HBox spacing="5">
+        <Button maxWidth="Infinity" focusTraversable="false" text="View" HBox.hgrow="ALWAYS" />
+        <Button maxWidth="Infinity" focusTraversable="false" text="Copy" HBox.hgrow="ALWAYS" />
+        <Button maxWidth="Infinity" focusTraversable="false" text="Move" HBox.hgrow="ALWAYS" />
+        <Button maxWidth="Infinity" focusTraversable="false" text="Delete" HBox.hgrow="ALWAYS" />
+        <padding>
+            <Insets bottom="5" left="5" right="5" />
+        </padding>
+    </HBox>
+</VBox>

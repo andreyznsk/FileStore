@@ -1,10 +1,9 @@
 package client;
 
-import client.models.ChatHistoryBuilder;
+
 import client.models.ClientChatState;
 import client.models.Network;
 import javafx.application.Application;
-import javafx.collections.FXCollections;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -13,61 +12,34 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Path;
 
 
 public class ClientChat extends Application {
 
-    public static final List<String> USERS_TEST_DATA = new ArrayList<>();
-    private Stage regStage;
-    private RegController regController;
 
     private ClientChatState state = ClientChatState.AUTHENTICATION;
     private Stage primaryStage;
     private Stage authDialogStage;
 
-    private ChatHistoryBuilder historyBuilder;
     private Network network;
     private ViewController viewController;
 
-   /* public static void openRegDialog() throws IOException{
-        FXMLLoader loader = new FXMLLoader();
-        loader.setLocation(ClientChat.class.getResource("/regDialog.fxml"));
-        AnchorPane parent = loader.load();
-
-        regDialogStage = new Stage();
-        regDialogStage.initModality(Modality.WINDOW_MODAL);
-        regDialogStage.initOwner(primaryStage);
-
-        AuthController authController = loader.getController();
-        authController.setNetwork(network);
-
-        regDialogStage.setScene(new Scene(parent));
-        regDialogStage.show();
-    }*/
-
-    public void updateUsers(List<String> users) {
-        viewController.usersList.setItems(FXCollections.observableList(users));
-    }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
         this.primaryStage = primaryStage;
 
         FXMLLoader loader = new FXMLLoader();
-        loader.setLocation(ClientChat.class.getResource("/view_lesson7.fxml"));
+        loader.setLocation(ClientChat.class.getResource("/manager.fxml"));
 
         Parent root = loader.load();
         viewController = loader.getController();
 
-        primaryStage.setTitle("Messenger");
-        primaryStage.setScene(new Scene(root, 600, 400));
-        viewController.getTextField().requestFocus();
+        primaryStage.setTitle("File Server Storage");
+        primaryStage.setScene(new Scene(root, 800, 400));
+        primaryStage.setResizable(false);
 
         network = new Network(this);
         if (!network.connect()) {
@@ -80,15 +52,10 @@ public class ClientChat extends Application {
         network.waitMessages(viewController);
 
         primaryStage.setOnCloseRequest(event -> {
-            try {
-                network.sendMessage("/end");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            network.close();
+          network.close();
         });
-        //regController.setNetwork(network);
         openAuthDialog();
+
     }
 
     private void openAuthDialog() throws IOException {
@@ -138,18 +105,12 @@ public class ClientChat extends Application {
         return state;
     }
 
-    public void setState(ClientChatState state) {
-        this.state = state;
-    }
-
-    public void activeChatDialog(String nickname) {
-        //historyBuilder = new ChatHistoryBuilder(nickname);
-        //viewController.setHistoryBuilder(historyBuilder);
-       // network.setHistoryBuilder(historyBuilder);
+    public void activeChatDialog(String nickname, String remotePath) {
         primaryStage.setTitle(nickname);
+        viewController.setRemoutePath(remotePath);
         state = ClientChatState.CHAT;
         authDialogStage.close();
         primaryStage.show();
-        viewController.getTextField().requestFocus();
+
     }
 }

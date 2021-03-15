@@ -12,7 +12,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.Arrays;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static ClientServer.Command.*;
 
@@ -28,7 +29,7 @@ public class Network {
 
         private ClientChat clientChat;
         private String nickname;
-        private ChatHistoryBuilder historyBuilder;
+        private String remoutePath;
 
         public Network() {
             this(SERVER_ADDRESS, SERVER_PORT);
@@ -54,14 +55,6 @@ public class Network {
                 e.printStackTrace();
                 return false;
             }
-        }
-
-        public void sendPrivateMessage(String receiver, String message) throws IOException {
-            sendCommand(privateMessageCommand(receiver, message));
-        }
-
-        public void sendMessage(String message) throws IOException {
-            sendCommand(publicMessageCommand(nickname, message));
         }
 
         private void sendCommand(Command command) throws IOException {
@@ -97,22 +90,7 @@ public class Network {
 
         private void processMessage(ViewController viewController, Command command) {
             switch (command.getType()) {
-                case INFO_MESSAGE: {
-                    MessageInfoCommandData data = (MessageInfoCommandData) command.getData();
-                    Platform.runLater(() -> {
-                        viewController.appendMessage(data.getMessage());
-                    });
-                    break;
-                }
-                case CLIENT_MESSAGE: {
-                    ClientMessageCommandData data = (ClientMessageCommandData) command.getData();
-                    String sender = data.getSender();
-                    String message = data.getMessage();
-                    Platform.runLater(() -> {
-                        viewController.appendMessage(String.format("%s: %s", sender, message));
-                    });
-                    break;
-                }
+
                 case ERROR: {
                     ErrorCommandData data = (ErrorCommandData) command.getData();
                     Platform.runLater(() -> {
@@ -120,13 +98,7 @@ public class Network {
                     });
                     break;
                 }
-                case UPDATE_USER_LIST: {
-                    UpdateUsersListCommandData data = (UpdateUsersListCommandData) command.getData();
-                    Platform.runLater(() -> {
-                        clientChat.updateUsers(data.getUsers());
-                    });
-                    break;
-                }
+
                 default:
                     throw new IllegalArgumentException("Uknown command type: " + command.getType());
             }
@@ -137,20 +109,14 @@ public class Network {
                 case AUTH_OK: {
                     AuthOkCommandData data = (AuthOkCommandData) command.getData();
                     nickname = data.getUsername();
+                    System.out.println("remote path = " + data.getPath());
+                    remoutePath = data.getPath();
                     Platform.runLater(() -> {
                         ClientChat.showNetworkConfirmation("Регистрация прошла успешно", "Успешно", null);
-                        clientChat.activeChatDialog(nickname);
+                        clientChat.activeChatDialog(nickname, remoutePath);
                     });
                     break;
                 }
-                case CLOSE_BY_TIMER:{//Дополнительная служебная команда об ошибке по таймеру
-                    Platform.runLater(() -> {
-                        ClientChat.showNetworkError("Соединение разорвано по таймеру", "Auth error", null);});
-
-
-                    break;
-                }
-
 
                 case ERROR: {
                     ErrorCommandData data = (ErrorCommandData) command.getData();
@@ -161,33 +127,28 @@ public class Network {
                 }
 
                 case CONFIRMATION:
-                    //ErrorCommandData data = (ErrorCommandData) command.getData();
+
                     Platform.runLater(() -> {
                         ClientChat.showNetworkConfirmation("Регистрация прошла успешно", "Успешно", null);
                     });
                     break;
 
-                case UPDATE_USER_LIST: {
-                        UpdateUsersListCommandData data = (UpdateUsersListCommandData) command.getData();
-                        Platform.runLater(() -> {
-                            clientChat.updateUsers(data.getUsers());
-                        });
-                        break;
-                    }
                 default:
                     throw new IllegalArgumentException("Uknown command type: " + command.getType());
             }
         }
 
         public void close() {
-
-            try {
+            //TODO Почему при закрытии удаленного сокета сервер съедает всю оперативную память и idea перестает запускаться?
+           /* try {
                 if (clientSocket != null && clientSocket.isConnected()) {
                     clientSocket.close();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-            }
+            }*/
+            Platform.exit();
+
         }
 
         private Command readCommand() throws IOException {
@@ -197,7 +158,7 @@ public class Network {
             int r = clientSocket.read(byteBuffer);
             if(r!=0) {
 
-                System.out.println(r);
+                //System.out.println(r);
                 while (r != 0) {
                     byteBuffer.flip();
                     int i = 0;
@@ -209,8 +170,7 @@ public class Network {
                     byteBuffer.clear();
                     r = clientSocket.read(byteBuffer);
                 }
-                System.out.println(Arrays.toString(data));
-                command = SerializationUtils.deserialize(data);
+             command = SerializationUtils.deserialize(data);
             }
 
             return command;
@@ -221,17 +181,12 @@ public class Network {
         }
 
     public void sendNewUserCommand(String login, String password, String nickname) throws IOException {
-
             sendCommand(regNewUserCommand(login, password, nickname));
 
     }
 
     public void sendUpdateUserCommand(String login, String password, String nickname) throws IOException {
         sendCommand(regUpdateUserCommand(login, password, nickname));
-
     }
 
-    public void setHistoryBuilder(ChatHistoryBuilder historyBuilder) {
-            this.historyBuilder = historyBuilder;
-    }
 }
