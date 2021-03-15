@@ -6,3 +6,4 @@ FileStore.iml
 # Project exclude paths
 /Client/target/
 /Server/target/
+/ClientServer/target/
