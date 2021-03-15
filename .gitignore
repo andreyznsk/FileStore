@@ -1,9 +1,12 @@
 # Project exclude paths
 /target/
 /.idea/
-#pom.xml
+pom.xml
 FileStore.iml
 # Project exclude paths
 /Client/target/
+/Client/pom.xml
 /Server/target/
+/Server/pom.xml
 /ClientServer/target/
+/ClientServer/pom.xml

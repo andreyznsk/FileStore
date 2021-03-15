@@ -1,9 +1,11 @@
 package server.Handler;
 
-import commands.AuthCommandData;
-import commands.AuthRegData;
-import commands.PrivateMessageCommandData;
-import commands.PublicMessageCommandData;
+import ClientServer.Command;
+import ClientServer.CommandType;
+import ClientServer.commands.AuthCommandData;
+import ClientServer.commands.AuthRegData;
+import ClientServer.commands.PrivateMessageCommandData;
+import ClientServer.commands.PublicMessageCommandData;
 import org.apache.commons.lang3.SerializationUtils;
 import server.MyServer;
 
@@ -23,9 +25,11 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
+import static ClientServer.Command.*;
 
 
 public class ClientHandler {
+
     private static final Logger logger = Logger.getLogger(MyServer.class.getName());
     private final MyServer myServer;
     private final SocketChannel serverSocket;
