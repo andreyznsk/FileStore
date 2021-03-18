@@ -4,6 +4,7 @@ package ClientServer;
 import ClientServer.commands.*;
 
 import java.io.Serializable;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -28,10 +29,10 @@ public class Command implements Serializable {
 
     }
 
-    public static Command authOkCommand(String username, String defPath, List<FileInfo> files) {
+    public static Command authOkCommand(String username, List<FileInfo> files) {
         Command command = new Command();
         command.type = CommandType.AUTH_OK;
-        command.data = new AuthOkCommandData(username, defPath, files);
+        command.data = new AuthOkCommandData(username, files);
         return command;
     }
 
@@ -62,5 +63,25 @@ public class Command implements Serializable {
         return command;
     }
 
+    public static Command updateUserPath(String requestDir){
+        Command command = new Command();
+        command.type = CommandType.REQUEST_DIR;
+        command.data = new RequestUserDir(requestDir);
+        return command;
+    }
 
+    public static Command requestDirOk( List<FileInfo> files, String currentPath){
+        Command command = new Command();
+        command.type = CommandType.REQUEST_DIR_OK;
+        command.data = new RequestDirOkData(files, currentPath);
+        return command;
+    }
+
+
+    public static Command fileSendCommand(String fileName){
+        Command command = new Command();
+        command.type = CommandType.FILE_SEND_REQEST;
+        command.data = new FileSendCommandData(fileName);
+        return command;
+    }
 }

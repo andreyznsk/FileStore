@@ -8,6 +8,7 @@ import java.time.ZoneOffset;
 
 public class FileInfoBuiled {
     public static FileInfo infoBuilder(Path path) {
+
         try {
             String fileName = path.getFileName().toString();
             long size = Files.size(path);

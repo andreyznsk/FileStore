@@ -1,21 +1,22 @@
 package server.Handler;
 
 import ClientServer.Command;
-import ClientServer.CommandType;
 import ClientServer.FileInfo;
+import ClientServer.FileTransmitter.FileReceiver;
+import ClientServer.FileTransmitter.FileWriter;
 import ClientServer.commands.AuthCommandData;
 import ClientServer.commands.AuthRegData;
+import ClientServer.commands.*;
 import org.apache.commons.lang3.SerializationUtils;
 import server.MyServer;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 
 import static ClientServer.Command.*;
@@ -27,7 +28,8 @@ public class ClientHandler {
     private final SocketChannel serverSocket;
 
     private String nickname;
-    private Path userPath;
+
+    private String userPath;
 
     public ClientHandler(MyServer myServer, SocketChannel serverSocket) {
         this.myServer = myServer;
@@ -36,12 +38,9 @@ public class ClientHandler {
 
     public void handle() {
 
-
-        ExecutorService executorService = Executors.newCachedThreadPool();
-
-        executorService.execute(() -> {
-            try {
+        try {
                 authentication();
+
                 readMessages();
             } catch (IOException e) {
               e.printStackTrace();
@@ -52,18 +51,34 @@ public class ClientHandler {
                   System.err.println("Failed to close connection!");
                 }
             }
+        }
+
+    private void fileResiverThread(String fileName) {
+        Thread thread = new Thread(() -> {
+            try {
+                FileOutputStream fos = new FileOutputStream("!ServerDisc/" + fileName);
+                FileChannel outChannel = fos.getChannel();
+                System.out.println("Как переслать файл");
+                System.out.println("Fiile recive: " + "!ServerDisc/" + fileName );
+            } catch (IOException e) {
+
+                System.out.println("Поток отправки файлов потерян");
+            }
         });
+        thread.setDaemon(true);
+        thread.start();
+
     }
 
-    private void authentication() throws IOException {
 
+    private void authentication() throws IOException {
         while (true) {
             Command command = readCommand();
             if (command == null) {
                 continue;
             }
-
-            if(command.getType() == CommandType.CREATE_NEW_USER) {
+            switch (command.getType()) {
+                case CREATE_NEW_USER: {
                 AuthRegData data = (AuthRegData) command.getData();
                 String login = data.getLogin();
                 String password = data.getPassword();
@@ -73,9 +88,9 @@ public class ClientHandler {
                     sendCommand(errorCommand("Такой ник уже есть!!"));
                     continue;
                 } else sendCommand(confirmationCommand("Регистрация прошла успешно!"));
+                break;
             }
-
-            if(command.getType() == CommandType.UPDATE_USER) {
+                case UPDATE_USER: {
                 AuthRegData data = (AuthRegData) command.getData();
                 String login = data.getLogin();
                 String password = data.getPassword();
@@ -90,45 +105,79 @@ public class ClientHandler {
                     sendCommand(confirmationCommand("Ник успешно изменен."));
                     System.out.println("Ник успешно изменен.");
                 }
+                break;
+            }
+                case AUTH: {
+                    AuthCommandData data = (AuthCommandData) command.getData();
+                    String login = data.getLogin();
+
+                    String password = data.getPassword();
+                    String[] nickAndPath = myServer.getAuthService().getNickByLoginPass(login, password);
+
+                    if (nickAndPath[0] == null) {
+                        sendCommand(errorCommand("Некорректные логин или пароль!"));
+                        System.out.println("Некорректные логин или пароль!");
+                        continue;
+                    }
+                    setNickname(nickAndPath[0]);
+                    List<FileInfo> files = FileHander.getFilesInfo(nickAndPath[1]);
+                    sendCommand(authOkCommand(getNickname(), files));
+                    System.out.println("Пользователь '%s' подключился!");
+                    myServer.subscribe(this);
+                    return;
+                }
+                default:
+                    throw new IllegalArgumentException("Unknown command type: " + command.getType());
+            }
+        }
+    }
+    private void readMessages() throws IOException {
+        while (true) {
+            Command command = readCommand();
+            if (command == null) {
+                continue;
             }
 
+            switch (command.getType()) {
 
-            if (command.getType() == CommandType.AUTH) {
-                AuthCommandData data = (AuthCommandData) command.getData();
-                String login = data.getLogin();
 
-                String password = data.getPassword();
-                String[] nickAndPath  = myServer.getAuthService().getNickByLoginPass(login, password);
+                case REQUEST_DIR: {
+                    RequestUserDir data = (RequestUserDir) command.getData();
+                    StringBuilder str = new StringBuilder();
+                    str.append(data.getRequestDir());
+                    str.delete(0,1);
+                    String requestDir = userPath + str;
+                    System.out.println("Искомая дирректория: " + requestDir);
+                    if(FileHander.isSrvDirectory(requestDir)) {
+                        List<FileInfo> files;
+                        files = FileHander.getFilesInfo(requestDir);
+                        sendCommand(requestDirOk(files, data.getRequestDir()));}
 
-                if (nickAndPath[0] == null) {
-                    sendCommand(errorCommand("Некорректные логин или пароль!"));
-                    System.out.println("Некорректные логин или пароль!");
-                    continue;
+                    break;
                 }
-                setNickname(nickAndPath[0]);
-                setUserPath(nickAndPath[1]);
-                List<FileInfo> files = FileHander.getFilesInfo(nickAndPath[1]);
-                //System.out.println("user dir is: "+files.get(0).getFileName());
-                System.out.println(files);
-                sendCommand(authOkCommand(getNickname(),nickAndPath[1], files));
 
-                System.out.println("Пользователь '%s' подключился!");
+                case FILE_SEND_REQEST:{
+                    FileSendCommandData data = (FileSendCommandData) command.getData();
+                    StringBuilder str = new StringBuilder();
+                    str.append(data.getFileName());
+                    str.delete(0,1);
+                    String requestDir = userPath + str;
+                    System.out.println(requestDir);
+                    Path p = FileHander.getPathByCurrentDir(requestDir);
+                    fileResiverThread(data.getFileName());
+                    break;
+                }
 
-                myServer.subscribe(this);
-                return;
+                case END:
+                    return;
+                default:
+                    throw new IllegalArgumentException("Unknown command type: " + command.getType());
+
             }
         }
     }
 
-    private void setUserPath(String path) {
-        this.userPath = Paths.get(".",path);
-    }
-
-    public Path getUserPath() {
-        return userPath;
-    }
-
-    public String getNickname() {
+     public String getNickname() {
         return nickname;
     }
 
@@ -155,27 +204,14 @@ public class ClientHandler {
                     byteBuffer.clear();
                     r = serverSocket.read(byteBuffer);
                 }
+                System.out.println(data);
                 command = SerializationUtils.deserialize(data);
+
             }
             return command;
     }
 
-    private void readMessages() throws IOException {
-        while (true) {
-            Command command = readCommand();
-            if (command == null) {
-                continue;
-            }
 
-            switch (command.getType()) {
-               case END:
-                    return;
-                default:
-                    throw new IllegalArgumentException("Unknown command type: " + command.getType());
-
-            }
-        }
-    }
 
     private void closeConnection() throws IOException {
         myServer.unsubscribe(this);
@@ -185,6 +221,7 @@ public class ClientHandler {
 
     private void setNickname(String nickname) {
         this.nickname = nickname;
+        this.userPath = nickname;
     }
 }
 

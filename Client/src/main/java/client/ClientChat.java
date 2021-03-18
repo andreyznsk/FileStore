@@ -110,7 +110,7 @@ public class ClientChat extends Application {
 
     public void activeChatDialog(String nickname, String remotePath, List<FileInfo> files) {
         primaryStage.setTitle(nickname);
-        viewController.updateRemoteList(remotePath,files);
+        viewController.updateRemoteList(nickname ,remotePath,files);
         state = ClientChatState.CHAT;
         authDialogStage.close();
         primaryStage.show();

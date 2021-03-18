@@ -12,9 +12,9 @@ public class AuthOkCommandData implements Serializable {
     private final String defPafh;
     private final List<FileInfo> files;
 
-    public AuthOkCommandData(String username, String defPafh, List<FileInfo> files) {
+    public AuthOkCommandData(String username, List<FileInfo> files) {
         this.username = username;
-        this.defPafh = defPafh;
+        this.defPafh = "~";
         this.files = files;
     }
 

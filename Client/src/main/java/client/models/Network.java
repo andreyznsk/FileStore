@@ -3,27 +3,35 @@ package client.models;
 
 import ClientServer.Command;
 import ClientServer.FileInfo;
+import ClientServer.FileTransmitter.FileReader;
+import ClientServer.FileTransmitter.FileSender;
 import ClientServer.commands.*;
 import client.ClientChat;
 import client.ViewController;
 import javafx.application.Platform;
 import org.apache.commons.lang3.SerializationUtils;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
+import java.util.Stack;
 
 import static ClientServer.Command.*;
+import static ClientServer.Command.updateUserPath;
 
 public class Network {
 
         private static final String SERVER_ADDRESS = "localhost";
         private static final int SERVER_PORT = 9000;
+
         private SocketChannel clientSocket;
+
+        private Stack<String> currentUserDir;
 
         private String host;
         private int port;
@@ -41,6 +49,7 @@ public class Network {
         public Network(String host, int port) {
             this.host = host;
             this.port = port;
+            currentUserDir = new Stack<>();
         }
 
         public Network(ClientChat clientChat) {
@@ -93,7 +102,15 @@ public class Network {
 
         private void processMessage(ViewController viewController, Command command) {
             switch (command.getType()) {
-
+                case REQUEST_DIR_OK:{
+                    RequestDirOkData data = (RequestDirOkData) command.getData();
+                    if (!currentUserDir.peek().equals(data.getNextPath())) currentUserDir.add(data.getNextPath());
+                    String updatedCurrentPath = currentUserDir.peek();
+                    Platform.runLater(() -> {
+                        viewController.updateRemoteList(nickname,updatedCurrentPath, data.getFiles());
+                    });
+                    break;
+                }
                 case ERROR: {
                     ErrorCommandData data = (ErrorCommandData) command.getData();
                     Platform.runLater(() -> {
@@ -107,17 +124,17 @@ public class Network {
             }
         }
 
-        private void processAuthResult(Command command) {
+    private void processAuthResult(Command command) {
             switch (command.getType()) {
                 case AUTH_OK: {
                     AuthOkCommandData data = (AuthOkCommandData) command.getData();
                     nickname = data.getUsername();
-                    System.out.println("remote path = " + data.getPath());
                     remoutePath = data.getPath();
                     files = data.getFiles();
-                    System.out.println(files);
+                    currentUserDir.add("~");
                     Platform.runLater(() -> {
                         ClientChat.showNetworkConfirmation("Регистрация прошла успешно", "Успешно", null);
+
                         clientChat.activeChatDialog(nickname, remoutePath,files);
                     });
                     break;
@@ -162,14 +179,11 @@ public class Network {
             ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
             int r = clientSocket.read(byteBuffer);
             if(r!=0) {
-
-                //System.out.println(r);
                 while (r != 0) {
                     byteBuffer.flip();
                     int i = 0;
                     while (byteBuffer.hasRemaining()) {
                         data[i] = byteBuffer.get();
-                        //System.out.println(data[i]);
                         i++;
                     }
                     byteBuffer.clear();
@@ -194,4 +208,41 @@ public class Network {
         sendCommand(regUpdateUserCommand(login, password, nickname));
     }
 
+    public void sendUpdateRemotePath(String requestPath) throws IOException{
+        System.out.println("Текущий каталог"+currentUserDir);
+      /*  if (currentUserDir.peek().equals("~")) {
+            sendCommand(updateUserPath("/" + requestPath));
+            System.out.println(requestPath);
+            return;
+        }*/
+            String tmp = currentUserDir.peek() + "/" + requestPath;
+
+        System.out.println("Посылаемая строка на сервер: " + tmp);
+            sendCommand(updateUserPath(tmp));
+    }
+
+    public void sendUpdateRemotePath() throws IOException{
+        System.out.println(currentUserDir);
+            if(currentUserDir.peek().equals("~")) return;
+            currentUserDir.pop();
+        sendCommand(updateUserPath(currentUserDir.peek()));
+
+    }
+
+    public void sendFileToServer(String fileName) {
+        System.out.println("Пересылемый файл " + fileName);
+
+        try {
+            System.out.println("File transfer: " + fileName);
+            FileInputStream fis = new FileInputStream(fileName);
+            FileChannel inChannel = fis.getChannel();
+            sendCommand(fileSendCommand(currentUserDir.peek() + "/" + fileName));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+    }
 }

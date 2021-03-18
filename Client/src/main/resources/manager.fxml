@@ -41,7 +41,7 @@
    </HBox>
     <HBox spacing="5">
         <Button maxWidth="Infinity" focusTraversable="false" text="View" HBox.hgrow="ALWAYS" />
-        <Button maxWidth="Infinity" focusTraversable="false" text="Copy" HBox.hgrow="ALWAYS" />
+        <Button maxWidth="Infinity" focusTraversable="false" text="Copy" HBox.hgrow="ALWAYS" onAction="#copyBtn"/>
         <Button maxWidth="Infinity" focusTraversable="false" text="Move" HBox.hgrow="ALWAYS" />
         <Button maxWidth="Infinity" focusTraversable="false" text="Delete" HBox.hgrow="ALWAYS" />
         <padding>

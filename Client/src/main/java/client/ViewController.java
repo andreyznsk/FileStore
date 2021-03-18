@@ -25,8 +25,11 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
+import static ClientServer.FileInfo.FileType.DIRECTORY;
+
 public class ViewController implements Initializable {
 
+   
     private Network network;
     private Stage primaryStage;
 
@@ -92,29 +95,29 @@ public class ViewController implements Initializable {
         remoteFilesTable.getColumns().addAll(fileTypeColumn, fileNameColumn, fileSizeColumn, fileDateColumn);
         remoteFilesTable.getSortOrder().add(fileTypeColumn);
 
-      /*  remoteFilesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        remoteFilesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
                 if (event.getClickCount() == 2) {
-                    Path path = Paths.get(pathField.getText()).resolve(remoteFilesTable.getSelectionModel().getSelectedItem().getFileName());
-                    if (Files.isDirectory(path)) {
-                        updateList(path);
+                    String requestPath = remoteFilesTable.getSelectionModel().getSelectedItem().getFileName();
+                    try {
+                        network.sendUpdateRemotePath(requestPath);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
             }
-        });*/
+        });
 
 
 
         //updateRemoteList(remotePath);
     }
 
-    public void updateRemoteList(String path, List<FileInfo> files) {
+    public void updateRemoteList(String nickName,String path, List<FileInfo> files) {
 
-            remotePathField.setText("{Server}: " + path);
+            remotePathField.setText(nickName + "@Server:" + path + "$");
             remoteFilesTable.getItems().clear();
-            if(files != null) System.out.println(files);
-
             remoteFilesTable.getItems().addAll(files);
             remoteFilesTable.sort();
 
@@ -229,8 +232,21 @@ public class ViewController implements Initializable {
     }
 
     public void btnRemoutePathAction(ActionEvent actionEvent) {
-        Path upperPath = Paths.get(pathField.getText()).getParent();
-        System.out.println(upperPath.normalize().toString());
-        //if(upperPath != null) updateList(upperPath);
+        try {
+            network.sendUpdateRemotePath();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void copyBtn(ActionEvent actionEvent) {
+        if (filesTable.isFocused()) {
+            System.out.println("Нажат слева");
+            if(filesTable.getSelectionModel().getSelectedItem().getType()==DIRECTORY) return;
+            network.sendFileToServer(filesTable.getSelectionModel().getSelectedItem().getFileName());
+        }
+        if (remoteFilesTable.isFocused()) {
+            System.out.println("Нажат справа");
+            }
     }
 }
