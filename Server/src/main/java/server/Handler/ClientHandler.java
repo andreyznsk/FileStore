@@ -2,6 +2,7 @@ package server.Handler;
 
 import ClientServer.Command;
 import ClientServer.CommandType;
+import ClientServer.FileInfo;
 import ClientServer.commands.AuthCommandData;
 import ClientServer.commands.AuthRegData;
 import org.apache.commons.lang3.SerializationUtils;
@@ -12,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -105,7 +107,10 @@ public class ClientHandler {
                 }
                 setNickname(nickAndPath[0]);
                 setUserPath(nickAndPath[1]);
-                sendCommand(authOkCommand(getNickname(),nickAndPath[1]));
+                List<FileInfo> files = FileHander.getFilesInfo(nickAndPath[1]);
+                //System.out.println("user dir is: "+files.get(0).getFileName());
+                System.out.println(files);
+                sendCommand(authOkCommand(getNickname(),nickAndPath[1], files));
 
                 System.out.println("Пользователь '%s' подключился!");
 

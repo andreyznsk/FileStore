@@ -1,6 +1,7 @@
 package client;
 
 import ClientServer.FileInfo;
+import ClientServer.FileInfoBuiled;
 import client.models.Network;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
@@ -28,10 +30,6 @@ public class ViewController implements Initializable {
     private Network network;
     private Stage primaryStage;
 
-
-    public void setRemoutePath(String remotePath) {
-       updateRemoteList(remotePath);
-    }
 
     @FXML
    TableView<FileInfo> filesTable;
@@ -111,11 +109,13 @@ public class ViewController implements Initializable {
         //updateRemoteList(remotePath);
     }
 
-    private void updateRemoteList(String path) {
+    public void updateRemoteList(String path, List<FileInfo> files) {
 
             remotePathField.setText("{Server}: " + path);
             remoteFilesTable.getItems().clear();
-            //remoteFilesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
+            if(files != null) System.out.println(files);
+
+            remoteFilesTable.getItems().addAll(files);
             remoteFilesTable.sort();
 
     }
@@ -181,7 +181,7 @@ public class ViewController implements Initializable {
         try {
             pathField.setText(path.normalize().toAbsolutePath().toString());
             filesTable.getItems().clear();
-            filesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
+            filesTable.getItems().addAll(Files.list(path).map(FileInfoBuiled::infoBuilder).collect(Collectors.toList()));
             filesTable.sort();
         } catch (IOException e) {
             Alert alert = new Alert(Alert.AlertType.WARNING, "Disk not availabl", ButtonType.OK);

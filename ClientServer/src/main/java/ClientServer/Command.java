@@ -5,6 +5,7 @@ import ClientServer.commands.*;
 
 import java.io.Serializable;
 import java.nio.file.Path;
+import java.util.List;
 
 public class Command implements Serializable {
 
@@ -27,10 +28,10 @@ public class Command implements Serializable {
 
     }
 
-    public static Command authOkCommand(String username, String defPath) {
+    public static Command authOkCommand(String username, String defPath, List<FileInfo> files) {
         Command command = new Command();
         command.type = CommandType.AUTH_OK;
-        command.data = new AuthOkCommandData(username, defPath);
+        command.data = new AuthOkCommandData(username, defPath, files);
         return command;
     }
 

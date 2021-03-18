@@ -2,6 +2,7 @@ package client.models;
 
 
 import ClientServer.Command;
+import ClientServer.FileInfo;
 import ClientServer.commands.*;
 import client.ClientChat;
 import client.ViewController;
@@ -14,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import static ClientServer.Command.*;
 
@@ -30,6 +32,7 @@ public class Network {
         private ClientChat clientChat;
         private String nickname;
         private String remoutePath;
+        private List<FileInfo> files;
 
         public Network() {
             this(SERVER_ADDRESS, SERVER_PORT);
@@ -111,9 +114,11 @@ public class Network {
                     nickname = data.getUsername();
                     System.out.println("remote path = " + data.getPath());
                     remoutePath = data.getPath();
+                    files = data.getFiles();
+                    System.out.println(files);
                     Platform.runLater(() -> {
                         ClientChat.showNetworkConfirmation("Регистрация прошла успешно", "Успешно", null);
-                        clientChat.activeChatDialog(nickname, remoutePath);
+                        clientChat.activeChatDialog(nickname, remoutePath,files);
                     });
                     break;
                 }
