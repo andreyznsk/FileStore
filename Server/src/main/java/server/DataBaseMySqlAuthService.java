@@ -18,9 +18,9 @@ public class DataBaseMySqlAuthService implements AuthService {
 
     private static void prepareAllStatements() throws SQLException {
         psSelect = connection.prepareStatement("SELECT nickname_fs, defdir from users_fs where login_fs= ? AND Password_fs = sha(?);  ");
-        psUpdate = connection.prepareStatement("UPDATE users SET nickname = ? WHERE login = ? AND password = ?;");
-        psInsert = connection.prepareStatement("INSERT INTO users_fs (nickname_fs, login_fs, Password_fs) VALUES (?, ?,sha(?));");
-        psSelectAllNick = connection.prepareStatement("SELECT nickname, login FROM users;");
+        psUpdate = connection.prepareStatement("UPDATE users_fs set nickname_fs = ? where login_fs = ? AND Password_fs = sha(?);");
+        psInsert = connection.prepareStatement("INSERT INTO users_fs (nickname_fs, login_fs, Password_fs, DefDir) VALUES (?, ?,sha(?),?);");
+        psSelectAllNick = connection.prepareStatement("SELECT login_fs, nickname_fs FROM users_fs;");
     }
 
     private static void connect() throws Exception {
@@ -91,9 +91,10 @@ public class DataBaseMySqlAuthService implements AuthService {
             psInsert.setString(1,nickname);
             psInsert.setString(2,login);
             psInsert.setString(3,password);
-            //System.out.printf("Login: %s\npassword: %s\nNickname: %s\n",login,password,nickname);
+            psInsert.setString(4,nickname);
+            System.out.printf("Login: %s\npassword: %s\nNickname: %s\n",login,password,nickname);
 
-            ResultSet rs = psSelectAllNick.executeQuery();
+       /*     ResultSet rs = psSelectAllNick.executeQuery();
             String dataBaseNick;
             String dataBaseLogin;
 
@@ -109,9 +110,9 @@ public class DataBaseMySqlAuthService implements AuthService {
                    return 0;
                 }
             }
-
+*/
             if(psInsert.executeUpdate()==1) {
-                //logger.log(Level.SEVERE,"Insert is OK");
+
                 System.out.println("Insert is OK");
                 return 1;
             }
@@ -119,7 +120,7 @@ public class DataBaseMySqlAuthService implements AuthService {
                 //ResultSet rs = psSelect.executeQuery();
 
         } catch (SQLException e) {
-            //logger.log(Level.SEVERE, "DB Error",e);
+
             System.err.println("DB ERROR");
             e.printStackTrace();
 

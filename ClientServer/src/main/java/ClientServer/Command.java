@@ -77,11 +77,37 @@ public class Command implements Serializable {
         return command;
     }
 
-
-    public static Command fileSendCommand(String fileName){
+    /**
+     * Метод формирования команды запроса на создания потока для отправки файла со сторный клинета на сервер
+     * @param filePath - путь в который нужно положить файл на сервере
+     * @param fileName - название файла
+     * @return
+     */
+    public static Command fileSendCommand(String filePath, String fileName){
         Command command = new Command();
         command.type = CommandType.FILE_SEND_REQEST;
-        command.data = new FileSendCommandData(fileName);
+        command.data = new FileSendCommandData(filePath,fileName);
         return command;
     }
+
+    public static Command requestTransmiterOk(){
+        Command command = new Command();
+        command.type = CommandType.REQUEST_TRANSMITTER_OK;
+        return command;
+    }
+
+    public static Command requestReciveOk(){
+        Command command = new Command();
+        command.type = CommandType.REQUEST_RECIVE_OK;
+        return command;
+    }
+
+    public static Command fileReceiveCommand(String filePath, String fileName){
+        Command command = new Command();
+        command.type = CommandType.FILE_RECIVE_REQEST;
+        command.data = new FileSendCommandData(filePath,fileName);
+        return command;
+    }
+
+
 }

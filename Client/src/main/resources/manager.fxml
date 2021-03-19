@@ -28,7 +28,7 @@
          <VBox maxWidth="400" HBox.hgrow="ALWAYS">
              <HBox>
                 <TextField fx:id="remotePathField" HBox.hgrow="ALWAYS" editable="false" />
-                <Button text="Вверх" onAction="#btnRemoutePathAction"/>
+                <Button text="Вверх" onAction="#btnRemotePathUpAction"/>
              </HBox>
                 <TableView fx:id="remoteFilesTable" maxHeight="Infinity" />
 

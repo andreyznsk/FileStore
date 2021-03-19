@@ -63,7 +63,7 @@ public class AuthController {
             Parent root = fxmlLoader.load();
             regStage = new Stage();
             regStage.setTitle("Регистрация");
-            regStage.setScene(new Scene(root, 350, 300));
+            regStage.setScene(new Scene(root, 250, 230));
             regStage.initModality(Modality.APPLICATION_MODAL);
 
             regController = fxmlLoader.getController();

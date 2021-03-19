@@ -2,11 +2,11 @@ package server.Handler;
 
 import ClientServer.Command;
 import ClientServer.FileInfo;
-import ClientServer.FileTransmitter.FileReceiver;
-import ClientServer.FileTransmitter.FileWriter;
 import ClientServer.commands.AuthCommandData;
 import ClientServer.commands.AuthRegData;
 import ClientServer.commands.*;
+import ClientServer.fileTransmitter.FileReceiver;
+import ClientServer.fileTransmitter.FileSender;
 import org.apache.commons.lang3.SerializationUtils;
 import server.MyServer;
 
@@ -28,8 +28,9 @@ public class ClientHandler {
     private final SocketChannel serverSocket;
 
     private String nickname;
-
+    private String currrentUserDir;
     private String userPath;
+    private String requestedDir;
 
     public ClientHandler(MyServer myServer, SocketChannel serverSocket) {
         this.myServer = myServer;
@@ -39,9 +40,9 @@ public class ClientHandler {
     public void handle() {
 
         try {
-                authentication();
+                authentication(); // Если подключился новый клиент нужно пройти метод аутентификации
 
-                readMessages();
+                readMessages(); // Если атентификация прошла, переходим в режим прослушивания команд от клиента
             } catch (IOException e) {
               e.printStackTrace();
             } finally {
@@ -53,21 +54,62 @@ public class ClientHandler {
             }
         }
 
-    private void fileResiverThread(String fileName) {
-        Thread thread = new Thread(() -> {
-            try {
-                FileOutputStream fos = new FileOutputStream("!ServerDisc/" + fileName);
-                FileChannel outChannel = fos.getChannel();
-                System.out.println("Как переслать файл");
-                System.out.println("Fiile recive: " + "!ServerDisc/" + fileName );
-            } catch (IOException e) {
+    /**
+     * отдельный поток поднимается для передачи фала от клиента на сервер
+     * @param userPath - путь на сервере вида ./!ServerDisc/[Папка клиента]/.../имя файла
+     * @param fileName - имя файла на сервере
+     */
+    private void fileReceiverThread(String userPath, String fileName) {
 
-                System.out.println("Поток отправки файлов потерян");
+        Thread thread = new Thread(() -> {
+                Path p = FileHander.getPathByCurrentDir(userPath);// Формируем путь к каталогу на сервере
+                String userServerPath = p + "\\" + fileName;
+                System.out.println("Fiile recive: " + userServerPath);
+                FileReceiver nioServer = new FileReceiver();
+                SocketChannel socketChannel = nioServer.createServerSocketChannel();
+                nioServer.readFileFromSocket(socketChannel,userServerPath);
+                List<FileInfo> files;
+                System.out.println("Путь от которого формируем файлы: " + currrentUserDir);
+                StringBuilder str = new StringBuilder();
+                str.append(currrentUserDir);
+                str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
+                String currrentUserDirTmp = nickname + str;// добавляем каталог пользователя к запрашиваемому каталогу
+                System.out.println("Искомая дирректория: " + currrentUserDirTmp);
+                files = FileHander.getFilesInfo(currrentUserDirTmp);
+
+            try {
+                sendCommand(requestDirOk(files, currrentUserDir));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+
         });
+
         thread.setDaemon(true);
         thread.start();
 
+    }
+
+    private void fileSenderThread(String requestDir, String fileName) {
+
+        Thread thread = new Thread(() -> {
+            Path p = FileHander.getPathByCurrentDir(requestDir);
+            String userServerPath = p + "\\" + fileName;
+            System.out.println("Fiile recive: " + userServerPath);
+            FileSender nioClient = new FileSender();
+            SocketChannel socketChannel = nioClient.createChannel();
+            nioClient.sendFile(socketChannel, userServerPath);
+
+            try {
+                sendCommand(requestReciveOk());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        });
+
+        thread.setDaemon(true);
+        thread.start();
     }
 
 
@@ -84,8 +126,8 @@ public class ClientHandler {
                 String password = data.getPassword();
                 String nickname = data.getNickname();
                 if (myServer.getAuthService().insertUser(login,password,nickname)==0) {
-                    System.out.println("Такой ник уже есть!!");
-                    sendCommand(errorCommand("Такой ник уже есть!!"));
+                    System.out.println("Ошибка создания пользователя");
+                    sendCommand(errorCommand("Ошибка создания пользователя"));
                     continue;
                 } else sendCommand(confirmationCommand("Регистрация прошла успешно!"));
                 break;
@@ -120,6 +162,7 @@ public class ClientHandler {
                         continue;
                     }
                     setNickname(nickAndPath[0]);
+                    FileHander.isSrvDirectoryExist(nickAndPath[1]);
                     List<FileInfo> files = FileHander.getFilesInfo(nickAndPath[1]);
                     sendCommand(authOkCommand(getNickname(), files));
                     System.out.println("Пользователь '%s' подключился!");
@@ -131,6 +174,11 @@ public class ClientHandler {
             }
         }
     }
+
+    /**
+     * Бесконечный цикл прослушивания команд от клиента на сервер
+     * @throws IOException
+     */
     private void readMessages() throws IOException {
         while (true) {
             Command command = readCommand();
@@ -140,33 +188,53 @@ public class ClientHandler {
 
             switch (command.getType()) {
 
-
+                /**
+                 * Команда на обновление списка файлов+папок сервера на стороне клиента
+                 */
                 case REQUEST_DIR: {
                     RequestUserDir data = (RequestUserDir) command.getData();
                     StringBuilder str = new StringBuilder();
-                    str.append(data.getRequestDir());
-                    str.delete(0,1);
-                    String requestDir = userPath + str;
-                    System.out.println("Искомая дирректория: " + requestDir);
-                    if(FileHander.isSrvDirectory(requestDir)) {
+                    requestedDir = data.getRequestDir();
+                    str.append(requestedDir);
+                    str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
+                    currrentUserDir = nickname + str;// добавляем каталог пользователя к запрашиваемому каталогу
+                    System.out.println("Искомая дирректория: " + currrentUserDir);
+                    if(FileHander.isSrvDirectory(currrentUserDir)) {
                         List<FileInfo> files;
-                        files = FileHander.getFilesInfo(requestDir);
-                        sendCommand(requestDirOk(files, data.getRequestDir()));}
+                        files = FileHander.getFilesInfo(currrentUserDir); // формируем список файлов сервера для клиента
+                        sendCommand(requestDirOk(files, requestedDir));}
 
                     break;
                 }
 
+                /**
+                 * Команада щапрос на соединение на прием файла от клиента на сервер
+                 */
                 case FILE_SEND_REQEST:{
                     FileSendCommandData data = (FileSendCommandData) command.getData();
                     StringBuilder str = new StringBuilder();
-                    str.append(data.getFileName());
-                    str.delete(0,1);
-                    String requestDir = userPath + str;
-                    System.out.println(requestDir);
-                    Path p = FileHander.getPathByCurrentDir(requestDir);
-                    fileResiverThread(data.getFileName());
+                    currrentUserDir = data.getFilePath();
+                    //if(currrentUserDir.equals("~")) currrentUserDir = userPath;
+                    str.append(data.getFilePath());
+                    str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
+                    String requestDir = nickname + str;// добавляем каталог пользователя к запрашиваемому каталогу
+                    fileReceiverThread(requestDir, data.getFileName());// Поднимаем параллельный поток для приема файла
+                    sendCommand(requestTransmiterOk());
                     break;
                 }
+                case FILE_RECIVE_REQEST: {
+                    FileSendCommandData data = (FileSendCommandData) command.getData();
+                    StringBuilder str = new StringBuilder();
+                    currrentUserDir = data.getFilePath();
+                    //if(currrentUserDir.equals("~")) currrentUserDir = userPath;
+                    str.append(data.getFilePath());
+                    str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
+                    String requestDir = nickname + str;// добавляем каталог пользователя к запрашиваемому каталогу
+                    fileSenderThread(requestDir, data.getFileName());// Поднимаем параллельный поток для приема файла
+
+                    break;
+                }
+
 
                 case END:
                     return;
@@ -177,7 +245,7 @@ public class ClientHandler {
         }
     }
 
-     public String getNickname() {
+    public String getNickname() {
         return nickname;
     }
 
@@ -204,7 +272,7 @@ public class ClientHandler {
                     byteBuffer.clear();
                     r = serverSocket.read(byteBuffer);
                 }
-                System.out.println(data);
+                //System.out.println(data);
                 command = SerializationUtils.deserialize(data);
 
             }
@@ -222,6 +290,7 @@ public class ClientHandler {
     private void setNickname(String nickname) {
         this.nickname = nickname;
         this.userPath = nickname;
+        this.currrentUserDir = "~";
     }
 }
 
