@@ -12,22 +12,6 @@ import java.nio.channels.SocketChannel;
 
 public class FileSender {
 
-/*    public SocketChannel createChannel(String host, int port) {
-
-        SocketChannel socketChannel = null;
-        try {
-            socketChannel = SocketChannel.open();
-            SocketAddress socketAddress = new InetSocketAddress(host, port);
-            socketChannel.connect(socketAddress);
-            System.out.println("Connected..Now sending the file");
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return socketChannel;
-    }*/
-
-
     public static void sendFile(SocketChannel socketChannel, String userFile) {
         RandomAccessFile aFile = null;
         try {
@@ -41,7 +25,6 @@ public class FileSender {
                 buffer.clear();
             }
             System.out.println("End of file reached..");
-            socketChannel.close();
             aFile.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();

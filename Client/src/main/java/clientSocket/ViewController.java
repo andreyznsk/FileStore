@@ -1,8 +1,8 @@
-package client;
+package clientSocket;
 
 import ClientServer.FileInfo.FileInfo;
 import ClientServer.FileInfo.FileInfoBuiled;
-import client.models.Network;
+import clientSocket.models.Network;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -216,7 +216,7 @@ public class ViewController implements Initializable {
         }
     }
 
-    public void updateList(){
+    public void updateClientDir(){
         try {
             Path path = Paths.get(pathField.getText());
             filesTable.getItems().clear();
@@ -283,7 +283,7 @@ public class ViewController implements Initializable {
             str.append(pathField.getText());
             str.append("\\");
             str.append(fileName);
-            network.requestTransmitterConnectionToServer(str.toString(),fileName);
+            network.requestSendFile(str.toString(),fileName);
 
         }
         if (remoteFilesTable.isFocused()) {
@@ -291,7 +291,7 @@ public class ViewController implements Initializable {
             if(remoteFilesTable.getSelectionModel().getSelectedItem().getType()==DIRECTORY) return;
             String srcFileName = remoteFilesTable.getSelectionModel().getSelectedItem().getFileName();
             String targetPath = pathField.getText() + "\\" + srcFileName;
-            network.requestTransmitterConnectionToClient(targetPath,srcFileName);
+            network.requestReceiveFile(targetPath,srcFileName);
             }
     }
 }

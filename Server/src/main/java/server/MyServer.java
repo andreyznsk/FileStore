@@ -108,13 +108,13 @@ public class MyServer {
     }*/
 
 
-    public synchronized void subscribe(ClientHandler handler) throws IOException {
+/*    public synchronized void subscribe(ClientHandler handler) throws IOException {
         clients.add(handler);
     }
 
     public synchronized void unsubscribe(ClientHandler handler) throws IOException {
         clients.remove(handler);
-    }
+    }*/
 
 
     public AuthService getAuthService() {

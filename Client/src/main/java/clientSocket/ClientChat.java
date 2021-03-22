@@ -1,9 +1,9 @@
-package client;
+package clientSocket;
 
 
 import ClientServer.FileInfo.FileInfo;
-import client.models.ClientChatState;
-import client.models.Network;
+import clientSocket.models.ClientChatState;
+import clientSocket.models.Network;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;

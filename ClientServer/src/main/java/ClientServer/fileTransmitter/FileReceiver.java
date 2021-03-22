@@ -12,26 +12,6 @@ import java.nio.channels.SocketChannel;
 
 
 public class FileReceiver {
-//   private ServerSocketChannel serverSocketChannel = null;
-
-/*
-    public SocketChannel createServerSocketChannel(SocketAddress socketAddress) {
-
-
-        SocketChannel socketChannel = null;
-        try {
-            serverSocketChannel = ServerSocketChannel.open();
-            serverSocketChannel.socket().bind(socketAddress);
-            socketChannel = serverSocketChannel.accept();
-            System.out.println("Connection established...." + socketChannel.getRemoteAddress());
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return socketChannel;
-    }
-*/
 
     /**
      * Reads the bytes from socket and writes to file
@@ -51,8 +31,6 @@ public class FileReceiver {
             }
             fileChannel.close();
             System.out.println("End of file reached..Closing channel");
-            //serverSocketChannel.close();
-            //socketChannel.close();
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();

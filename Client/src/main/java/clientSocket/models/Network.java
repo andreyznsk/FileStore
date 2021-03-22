@@ -1,4 +1,4 @@
-package client.models;
+package clientSocket.models;
 
 
 import ClientServer.Command;
@@ -6,12 +6,11 @@ import ClientServer.FileInfo.FileInfo;
 import ClientServer.commands.*;
 import ClientServer.fileTransmitter.FileReceiver;
 import ClientServer.fileTransmitter.FileSender;
-import client.ClientChat;
-import client.ViewController;
+import clientSocket.ClientChat;
+import clientSocket.ViewController;
 import javafx.application.Platform;
 import org.apache.commons.lang3.SerializationUtils;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -122,10 +121,8 @@ public class Network {
                 }
 
                 case REQUEST_RECIVE_OK: {
-                    System.out.println("File received");
-                    Platform.runLater(() -> {
-                        viewController.updateList();
-                    });
+                    receiveFileFromServer(userFile);
+                    Platform.runLater(viewController::updateClientDir);
                     break;
                 }
 
@@ -143,6 +140,17 @@ public class Network {
         }
 
     private void receiveFileFromServer(String userFile) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(1);
+        int r;
+        try {
+            do {
+                r = clientSocket.read(byteBuffer);//Это костыль?
+            } while (r==0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        FileReceiver.readFileFromSocket(clientSocket, userFile);
 
     }
 
@@ -260,15 +268,12 @@ public class Network {
      * @param  userFile - полный путь к файлу на стороне клиента
      * @param  fileName - Название файла
      */
-    public void requestTransmitterConnectionToServer(String userFile, String fileName) {
+    public void requestSendFile(String userFile, String fileName) {
         System.out.println("Пересылемый файл " + fileName);
         this.userFile = userFile;
         try {
             sendCommand(fileSendCommand(currentUserDir.peek(),fileName));
-            sendFileToServer(userFile);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+         } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -279,22 +284,15 @@ public class Network {
     }
 
 
-    public void requestTransmitterConnectionToClient(String targetPath, String srcFileName) {
+    public void requestReceiveFile(String targetPath, String srcFileName) {
         System.out.println("Пересылемый файл " + srcFileName);
-        Thread thread = new Thread(() -> {
-            FileReceiver nioServer = new FileReceiver();
-            //SocketChannel socketChannel = nioServer.createServerSocketChannel();
-            //nioServer.readFileFromSocket(socketChannel,  targetPath);
-        });
-        thread.setDaemon(true);
-        thread.start();
-
+        this.userFile = targetPath;
         try {
             sendCommand(fileReceiveCommand(currentUserDir.peek(),srcFileName));
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+
         }
+
     }
 }
