@@ -12,12 +12,12 @@ import java.nio.channels.SocketChannel;
 
 public class FileSender {
 
-    public SocketChannel createChannel() {
+/*    public SocketChannel createChannel(String host, int port) {
 
         SocketChannel socketChannel = null;
         try {
             socketChannel = SocketChannel.open();
-            SocketAddress socketAddress = new InetSocketAddress("localhost", 9999);
+            SocketAddress socketAddress = new InetSocketAddress(host, port);
             socketChannel.connect(socketAddress);
             System.out.println("Connected..Now sending the file");
 
@@ -25,10 +25,10 @@ public class FileSender {
             e.printStackTrace();
         }
         return socketChannel;
-    }
+    }*/
 
 
-    public void sendFile(SocketChannel socketChannel, String userFile) {
+    public static void sendFile(SocketChannel socketChannel, String userFile) {
         RandomAccessFile aFile = null;
         try {
             File file = new File(userFile);

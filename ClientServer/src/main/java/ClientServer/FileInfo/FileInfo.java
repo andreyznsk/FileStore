@@ -1,4 +1,4 @@
-package ClientServer;
+package ClientServer.FileInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,24 +10,11 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 public class FileInfo implements Serializable {
-    public enum FileType{
-        FILE("F"), DIRECTORY("D");
 
-        private String name;
-
-        FileType(String name) {
-            this.name = name;
-        }
-
-        public String getName() {
-            return name;
-        }
-    }
-
-    private String fileName;
-    private FileType type;
-    private long size;
-    private LocalDateTime lastModified;
+    private final String fileName;
+    private final FileType type;
+    private final long size;
+    private final LocalDateTime lastModified;
 
     public String getFileName() {
         return fileName;

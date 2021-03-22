@@ -20,7 +20,8 @@ public class MyServer {
     private final AuthService authService;
     private Selector selector;
     private ServerSocketChannel serverSocket;
-    public int SERVER_PORT;
+    public int serverPort;
+    public String serverHost;
 
 
     public MyServer() {
@@ -28,11 +29,12 @@ public class MyServer {
 
     }
 
-    public void start(int port) throws IOException {
-            SERVER_PORT = port;
+    public void start(String host, int port) throws IOException {
+            serverPort = port;
+            serverHost = host;
             selector = Selector.open();
             serverSocket = ServerSocketChannel.open();
-            serverSocket.socket().bind(new InetSocketAddress("localhost", port));
+            serverSocket.socket().bind(new InetSocketAddress(host, port));
             serverSocket.configureBlocking(false);
             serverSocket.register(selector, SelectionKey.OP_ACCEPT);
             System.out.println("Server started");

@@ -1,4 +1,5 @@
-package ClientServer;
+package ClientServer.FileInfo;
+
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,8 +13,8 @@ public class FileInfoBuiled {
         try {
             String fileName = path.getFileName().toString();
             long size = Files.size(path);
-            FileInfo.FileType type = Files.isDirectory(path) ? FileInfo.FileType.DIRECTORY : FileInfo.FileType.FILE;
-            if (type == FileInfo.FileType.DIRECTORY) {
+            FileType type = Files.isDirectory(path) ? FileType.DIRECTORY : FileType.FILE;
+            if (type == FileType.DIRECTORY) {
                 size = -1L;
             }
             LocalDateTime lastModified = LocalDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneOffset.ofHours(0));

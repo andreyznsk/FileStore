@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ServerSocketChannel;
@@ -11,15 +12,16 @@ import java.nio.channels.SocketChannel;
 
 
 public class FileReceiver {
-   private ServerSocketChannel serverSocketChannel = null;
+//   private ServerSocketChannel serverSocketChannel = null;
 
-    public SocketChannel createServerSocketChannel() {
+/*
+    public SocketChannel createServerSocketChannel(SocketAddress socketAddress) {
 
 
         SocketChannel socketChannel = null;
         try {
             serverSocketChannel = ServerSocketChannel.open();
-            serverSocketChannel.socket().bind(new InetSocketAddress(9999));
+            serverSocketChannel.socket().bind(socketAddress);
             socketChannel = serverSocketChannel.accept();
             System.out.println("Connection established...." + socketChannel.getRemoteAddress());
 
@@ -29,13 +31,14 @@ public class FileReceiver {
 
         return socketChannel;
     }
+*/
 
     /**
      * Reads the bytes from socket and writes to file
      *
      * @param socketChannel
      */
-    public void readFileFromSocket(SocketChannel socketChannel, String userServerPath) {
+    public static void readFileFromSocket(SocketChannel socketChannel, String userServerPath) {
         RandomAccessFile aFile = null;
         try {
             aFile = new RandomAccessFile(userServerPath, "rw");
@@ -48,8 +51,8 @@ public class FileReceiver {
             }
             fileChannel.close();
             System.out.println("End of file reached..Closing channel");
-            serverSocketChannel.close();
-            socketChannel.close();
+            //serverSocketChannel.close();
+            //socketChannel.close();
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();

@@ -1,11 +1,10 @@
 package ClientServer;
 
 
+import ClientServer.FileInfo.FileInfo;
 import ClientServer.commands.*;
 
 import java.io.Serializable;
-import java.nio.channels.FileChannel;
-import java.nio.file.Path;
 import java.util.List;
 
 public class Command implements Serializable {
@@ -20,6 +19,8 @@ public class Command implements Serializable {
     public Object getData() {
         return data;
     }
+
+    private Command(){}
 
     public static Command authCommand(String login, String password){
         Command command = new Command();

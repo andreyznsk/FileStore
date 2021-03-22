@@ -2,7 +2,7 @@ package client.models;
 
 
 import ClientServer.Command;
-import ClientServer.FileInfo;
+import ClientServer.FileInfo.FileInfo;
 import ClientServer.commands.*;
 import ClientServer.fileTransmitter.FileReceiver;
 import ClientServer.fileTransmitter.FileSender;
@@ -11,14 +11,11 @@ import client.ViewController;
 import javafx.application.Platform;
 import org.apache.commons.lang3.SerializationUtils;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Stack;
 
@@ -34,8 +31,8 @@ public class Network {
 
         private Stack<String> currentUserDir;
 
-        private String host;
-        private int port;
+        private final String host;
+        private final int port;
 
 
         private ClientChat clientChat;
@@ -268,6 +265,7 @@ public class Network {
         this.userFile = userFile;
         try {
             sendCommand(fileSendCommand(currentUserDir.peek(),fileName));
+            sendFileToServer(userFile);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -277,9 +275,7 @@ public class Network {
 
     public void sendFileToServer(String userFile)
     {
-        FileSender nioClient = new FileSender();
-        SocketChannel socketChannel = nioClient.createChannel();
-        nioClient.sendFile(socketChannel, userFile);
+            FileSender.sendFile(clientSocket, userFile);
     }
 
 
@@ -287,8 +283,8 @@ public class Network {
         System.out.println("Пересылемый файл " + srcFileName);
         Thread thread = new Thread(() -> {
             FileReceiver nioServer = new FileReceiver();
-            SocketChannel socketChannel = nioServer.createServerSocketChannel();
-            nioServer.readFileFromSocket(socketChannel,  targetPath);
+            //SocketChannel socketChannel = nioServer.createServerSocketChannel();
+            //nioServer.readFileFromSocket(socketChannel,  targetPath);
         });
         thread.setDaemon(true);
         thread.start();

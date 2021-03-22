@@ -1,7 +1,7 @@
 package server.Handler;
 
 import ClientServer.Command;
-import ClientServer.FileInfo;
+import ClientServer.FileInfo.FileInfo;
 import ClientServer.commands.AuthCommandData;
 import ClientServer.commands.AuthRegData;
 import ClientServer.commands.*;
@@ -10,10 +10,8 @@ import ClientServer.fileTransmitter.FileSender;
 import org.apache.commons.lang3.SerializationUtils;
 import server.MyServer;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.util.List;
@@ -65,9 +63,9 @@ public class ClientHandler {
                 Path p = FileHander.getPathByCurrentDir(userPath);// Формируем путь к каталогу на сервере
                 String userServerPath = p + "\\" + fileName;
                 System.out.println("Fiile recive: " + userServerPath);
-                FileReceiver nioServer = new FileReceiver();
-                SocketChannel socketChannel = nioServer.createServerSocketChannel();
-                nioServer.readFileFromSocket(socketChannel,userServerPath);
+                //FileReceiver nioServer = new FileReceiver();
+                //SocketChannel socketChannel = nioServer.createServerSocketChannel();
+                FileReceiver.readFileFromSocket(serverSocket, userServerPath);
                 List<FileInfo> files;
                 System.out.println("Путь от которого формируем файлы: " + currrentUserDir);
                 StringBuilder str = new StringBuilder();
@@ -96,9 +94,7 @@ public class ClientHandler {
             Path p = FileHander.getPathByCurrentDir(requestDir);
             String userServerPath = p + "\\" + fileName;
             System.out.println("Fiile recive: " + userServerPath);
-            FileSender nioClient = new FileSender();
-            SocketChannel socketChannel = nioClient.createChannel();
-            nioClient.sendFile(socketChannel, userServerPath);
+
 
             try {
                 sendCommand(requestReciveOk());
@@ -214,12 +210,11 @@ public class ClientHandler {
                     FileSendCommandData data = (FileSendCommandData) command.getData();
                     StringBuilder str = new StringBuilder();
                     currrentUserDir = data.getFilePath();
-                    //if(currrentUserDir.equals("~")) currrentUserDir = userPath;
                     str.append(data.getFilePath());
                     str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
                     String requestDir = nickname + str;// добавляем каталог пользователя к запрашиваемому каталогу
                     fileReceiverThread(requestDir, data.getFileName());// Поднимаем параллельный поток для приема файла
-                    sendCommand(requestTransmiterOk());
+                    //sendCommand(requestTransmiterOk());
                     break;
                 }
                 case FILE_RECIVE_REQEST: {

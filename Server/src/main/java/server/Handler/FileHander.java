@@ -1,7 +1,7 @@
 package server.Handler;
 
-import ClientServer.FileInfo;
-import ClientServer.FileInfoBuiled;
+import ClientServer.FileInfo.FileInfo;
+import ClientServer.FileInfo.FileInfoBuiled;
 
 import java.io.IOException;
 import java.nio.file.Files;
