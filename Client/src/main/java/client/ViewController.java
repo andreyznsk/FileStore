@@ -1,6 +1,7 @@
 package client;
 
 import ClientServer.FileInfo;
+import ClientServer.FileInfoBuiled;
 import client.models.Network;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
@@ -20,18 +21,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
+import static ClientServer.FileInfo.FileType.DIRECTORY;
+
 public class ViewController implements Initializable {
 
+   
     private Network network;
     private Stage primaryStage;
 
-
-    public void setRemoutePath(String remotePath) {
-       updateRemoteList(remotePath);
-    }
 
     @FXML
    TableView<FileInfo> filesTable;
@@ -94,33 +95,41 @@ public class ViewController implements Initializable {
         remoteFilesTable.getColumns().addAll(fileTypeColumn, fileNameColumn, fileSizeColumn, fileDateColumn);
         remoteFilesTable.getSortOrder().add(fileTypeColumn);
 
-      /*  remoteFilesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
+        remoteFilesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
                 if (event.getClickCount() == 2) {
-                    Path path = Paths.get(pathField.getText()).resolve(remoteFilesTable.getSelectionModel().getSelectedItem().getFileName());
-                    if (Files.isDirectory(path)) {
-                        updateList(path);
+                    String requestPath = remoteFilesTable.getSelectionModel().getSelectedItem().getFileName();
+                    try {
+                        network.sendUpdateRemotePath(requestPath);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
             }
-        });*/
+        });
 
 
 
         //updateRemoteList(remotePath);
     }
 
-    private void updateRemoteList(String path) {
+    /**
+     * Метод обновения списка фалов и каталогов сервера на стороне клиента
+     * @param nickName - текущий Ник
+     * @param path - текущий каталог на который смотрит клиент на сервере
+     * @param files - коллекция (лист)
+     */
+    public void updateRemoteList(String nickName,String path, List<FileInfo> files) {
 
-            remotePathField.setText("{Server}: " + path);
+            remotePathField.setText(nickName + "@Server:" + path + "/ $");
             remoteFilesTable.getItems().clear();
-            //remoteFilesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
+            remoteFilesTable.getItems().addAll(files);
             remoteFilesTable.sort();
 
     }
 
-    private void leftPanel() {
+        private void leftPanel() {
         TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
         fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
         fileTypeColumn.setPrefWidth(24);
@@ -177,11 +186,16 @@ public class ViewController implements Initializable {
         updateList(Paths.get("."));
     }
 
+    /**
+     * Метод обновления левой локальной паели.
+     * Строит коллекцию файлов от пути и запсывает путь в верхнюю строку
+     * @param path
+     */
     public void updateList(Path path){
         try {
             pathField.setText(path.normalize().toAbsolutePath().toString());
             filesTable.getItems().clear();
-            filesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
+            filesTable.getItems().addAll(Files.list(path).map(FileInfoBuiled::infoBuilder).collect(Collectors.toList()));
             filesTable.sort();
         } catch (IOException e) {
             Alert alert = new Alert(Alert.AlertType.WARNING, "Disk not availabl", ButtonType.OK);
@@ -189,6 +203,17 @@ public class ViewController implements Initializable {
         }
     }
 
+    public void updateList(){
+        try {
+            Path path = Paths.get(pathField.getText());
+            filesTable.getItems().clear();
+            filesTable.getItems().addAll(Files.list(path).map(FileInfoBuiled::infoBuilder).collect(Collectors.toList()));
+            filesTable.sort();
+        } catch (IOException e) {
+            Alert alert = new Alert(Alert.AlertType.WARNING, "Disk not availabl", ButtonType.OK);
+            alert.showAndWait();
+        }
+    }
 
 
 
@@ -228,9 +253,32 @@ public class ViewController implements Initializable {
         return pathField.getText();
     }
 
-    public void btnRemoutePathAction(ActionEvent actionEvent) {
-        Path upperPath = Paths.get(pathField.getText()).getParent();
-        System.out.println(upperPath.normalize().toString());
-        //if(upperPath != null) updateList(upperPath);
+    public void btnRemotePathUpAction(ActionEvent actionEvent) {
+        try {
+            network.sendUpdateRemotePath();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void copyBtn(ActionEvent actionEvent) {
+        if (filesTable.isFocused()) {
+            System.out.println("Нажат слева");
+            if(filesTable.getSelectionModel().getSelectedItem().getType()==DIRECTORY) return;
+            String fileName = filesTable.getSelectionModel().getSelectedItem().getFileName();
+            StringBuilder str = new StringBuilder();
+            str.append(pathField.getText());
+            str.append("\\");
+            str.append(fileName);
+            network.requestTransmitterConnectionToServer(str.toString(),fileName);
+
+        }
+        if (remoteFilesTable.isFocused()) {
+            System.out.println("Нажат справа");
+            if(remoteFilesTable.getSelectionModel().getSelectedItem().getType()==DIRECTORY) return;
+            String srcFileName = remoteFilesTable.getSelectionModel().getSelectedItem().getFileName();
+            String targetPath = pathField.getText() + "\\" + srcFileName;
+            network.requestTransmitterConnectionToClient(targetPath,srcFileName);
+            }
     }
 }

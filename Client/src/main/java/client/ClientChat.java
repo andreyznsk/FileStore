@@ -1,6 +1,7 @@
 package client;
 
 
+import ClientServer.FileInfo;
 import client.models.ClientChatState;
 import client.models.Network;
 import javafx.application.Application;
@@ -12,8 +13,10 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 
 public class ClientChat extends Application {
@@ -105,9 +108,9 @@ public class ClientChat extends Application {
         return state;
     }
 
-    public void activeChatDialog(String nickname, String remotePath) {
+    public void activeChatDialog(String nickname, String remotePath, List<FileInfo> files) {
         primaryStage.setTitle(nickname);
-        viewController.setRemoutePath(remotePath);
+        viewController.updateRemoteList(nickname ,remotePath,files);
         state = ClientChatState.CHAT;
         authDialogStage.close();
         primaryStage.show();

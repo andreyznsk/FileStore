@@ -28,7 +28,7 @@
          <VBox maxWidth="400" HBox.hgrow="ALWAYS">
              <HBox>
                 <TextField fx:id="remotePathField" HBox.hgrow="ALWAYS" editable="false" />
-                <Button text="Вверх" onAction="#btnRemoutePathAction"/>
+                <Button text="Вверх" onAction="#btnRemotePathUpAction"/>
              </HBox>
                 <TableView fx:id="remoteFilesTable" maxHeight="Infinity" />
 
@@ -41,7 +41,7 @@
    </HBox>
     <HBox spacing="5">
         <Button maxWidth="Infinity" focusTraversable="false" text="View" HBox.hgrow="ALWAYS" />
-        <Button maxWidth="Infinity" focusTraversable="false" text="Copy" HBox.hgrow="ALWAYS" />
+        <Button maxWidth="Infinity" focusTraversable="false" text="Copy" HBox.hgrow="ALWAYS" onAction="#copyBtn"/>
         <Button maxWidth="Infinity" focusTraversable="false" text="Move" HBox.hgrow="ALWAYS" />
         <Button maxWidth="Infinity" focusTraversable="false" text="Delete" HBox.hgrow="ALWAYS" />
         <padding>

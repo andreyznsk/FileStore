@@ -2,26 +2,37 @@ package client.models;
 
 
 import ClientServer.Command;
+import ClientServer.FileInfo;
 import ClientServer.commands.*;
+import ClientServer.fileTransmitter.FileReceiver;
+import ClientServer.fileTransmitter.FileSender;
 import client.ClientChat;
 import client.ViewController;
 import javafx.application.Platform;
 import org.apache.commons.lang3.SerializationUtils;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.List;
+import java.util.Stack;
 
 import static ClientServer.Command.*;
+import static ClientServer.Command.updateUserPath;
 
 public class Network {
 
         private static final String SERVER_ADDRESS = "localhost";
         private static final int SERVER_PORT = 9000;
+
         private SocketChannel clientSocket;
+
+        private Stack<String> currentUserDir;
 
         private String host;
         private int port;
@@ -30,14 +41,17 @@ public class Network {
         private ClientChat clientChat;
         private String nickname;
         private String remoutePath;
+        private List<FileInfo> files;
+        private String userFile;
 
-        public Network() {
+    public Network() {
             this(SERVER_ADDRESS, SERVER_PORT);
         }
 
         public Network(String host, int port) {
             this.host = host;
             this.port = port;
+            currentUserDir = new Stack<>();
         }
 
         public Network(ClientChat clientChat) {
@@ -90,6 +104,33 @@ public class Network {
 
         private void processMessage(ViewController viewController, Command command) {
             switch (command.getType()) {
+                /**
+                 * ответ от сервера на запрос обновления каталога
+                 */
+                case REQUEST_DIR_OK:{
+                    RequestDirOkData data = (RequestDirOkData) command.getData();
+                    if (!currentUserDir.peek().equals(data.getNextPath())) currentUserDir.add(data.getNextPath()); //Данная проверка нужна, если происходит переход
+                    // на уровень выше, то текущий катлог на клиенте совпадает с каталогом который прислал сервер, его не записываем
+                    String updatedCurrentPath = currentUserDir.peek();
+                    Platform.runLater(() -> {
+                        viewController.updateRemoteList(nickname,updatedCurrentPath, data.getFiles());
+                    });
+                    break;
+                }
+
+                case REQUEST_TRANSMITTER_OK: {
+                    System.out.println("Await for transmitt");
+                    sendFileToServer(userFile);
+                    break;
+                }
+
+                case REQUEST_RECIVE_OK: {
+                    System.out.println("File received");
+                    Platform.runLater(() -> {
+                        viewController.updateList();
+                    });
+                    break;
+                }
 
                 case ERROR: {
                     ErrorCommandData data = (ErrorCommandData) command.getData();
@@ -104,16 +145,22 @@ public class Network {
             }
         }
 
-        private void processAuthResult(Command command) {
+    private void receiveFileFromServer(String userFile) {
+
+    }
+
+    private void processAuthResult(Command command) {
             switch (command.getType()) {
                 case AUTH_OK: {
                     AuthOkCommandData data = (AuthOkCommandData) command.getData();
                     nickname = data.getUsername();
-                    System.out.println("remote path = " + data.getPath());
                     remoutePath = data.getPath();
+                    files = data.getFiles();
+                    currentUserDir.add("~");
                     Platform.runLater(() -> {
                         ClientChat.showNetworkConfirmation("Регистрация прошла успешно", "Успешно", null);
-                        clientChat.activeChatDialog(nickname, remoutePath);
+
+                        clientChat.activeChatDialog(nickname, remoutePath,files);
                     });
                     break;
                 }
@@ -157,14 +204,11 @@ public class Network {
             ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
             int r = clientSocket.read(byteBuffer);
             if(r!=0) {
-
-                //System.out.println(r);
                 while (r != 0) {
                     byteBuffer.flip();
                     int i = 0;
                     while (byteBuffer.hasRemaining()) {
                         data[i] = byteBuffer.get();
-                        //System.out.println(data[i]);
                         i++;
                     }
                     byteBuffer.clear();
@@ -189,4 +233,72 @@ public class Network {
         sendCommand(regUpdateUserCommand(login, password, nickname));
     }
 
+    /**
+     * Перегруженный метод переход в запрашиваемый каталог на сервере
+      * @param requestPath - запрашиваемый каталог
+     * @throws IOException
+     */
+    public void sendUpdateRemotePath(String requestPath) throws IOException{
+        System.out.println("Текущий каталог: " + currentUserDir);
+        String tmp = currentUserDir.peek() + "/" + requestPath; // отправить на сервер текущий каталог + запрашиваемый каталог
+        System.out.println("Посылаемая строка на сервер: " + tmp);
+            sendCommand(updateUserPath(tmp));
+    }
+
+    /**
+     * Перегруженный метод перехода на уроень выше на стороне сервера
+     * отправляет запрос на обновеление списка файлов и папок на уровне выше
+     * @throws IOException
+     */
+    public void sendUpdateRemotePath() throws IOException{
+        System.out.println(currentUserDir);//техническая информация
+            if(currentUserDir.peek().equals("~")) return; //Проверка если текущая директория корневая, то выйти
+            currentUserDir.pop();// Удаляем текущий каталог
+        sendCommand(updateUserPath(currentUserDir.peek()));// посылаем на сервер запрос списка предыдущего каталога
+
+    }
+
+    /**
+     * Метод запроса на соединение для пересылки файла от клиента на сервер
+     * @param  userFile - полный путь к файлу на стороне клиента
+     * @param  fileName - Название файла
+     */
+    public void requestTransmitterConnectionToServer(String userFile, String fileName) {
+        System.out.println("Пересылемый файл " + fileName);
+        this.userFile = userFile;
+        try {
+            sendCommand(fileSendCommand(currentUserDir.peek(),fileName));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendFileToServer(String userFile)
+    {
+        FileSender nioClient = new FileSender();
+        SocketChannel socketChannel = nioClient.createChannel();
+        nioClient.sendFile(socketChannel, userFile);
+    }
+
+
+    public void requestTransmitterConnectionToClient(String targetPath, String srcFileName) {
+        System.out.println("Пересылемый файл " + srcFileName);
+        Thread thread = new Thread(() -> {
+            FileReceiver nioServer = new FileReceiver();
+            SocketChannel socketChannel = nioServer.createServerSocketChannel();
+            nioServer.readFileFromSocket(socketChannel,  targetPath);
+        });
+        thread.setDaemon(true);
+        thread.start();
+
+        try {
+            sendCommand(fileReceiveCommand(currentUserDir.peek(),srcFileName));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

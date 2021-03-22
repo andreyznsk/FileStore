@@ -8,7 +8,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 
 public class MyServer {
@@ -17,6 +20,7 @@ public class MyServer {
     private final AuthService authService;
     private Selector selector;
     private ServerSocketChannel serverSocket;
+    public int SERVER_PORT;
 
 
     public MyServer() {
@@ -25,6 +29,7 @@ public class MyServer {
     }
 
     public void start(int port) throws IOException {
+            SERVER_PORT = port;
             selector = Selector.open();
             serverSocket = ServerSocketChannel.open();
             serverSocket.socket().bind(new InetSocketAddress("localhost", port));
@@ -51,6 +56,8 @@ public class MyServer {
                     if (selectionKey.isReadable()) {
                         readMessage(selectionKey);
                     }
+
+                 //   if(!selectionKey.isValid()) serverSocket.close();
                     iterator.remove();
                 }
 
@@ -101,7 +108,6 @@ public class MyServer {
 
     public synchronized void subscribe(ClientHandler handler) throws IOException {
         clients.add(handler);
-
     }
 
     public synchronized void unsubscribe(ClientHandler handler) throws IOException {
