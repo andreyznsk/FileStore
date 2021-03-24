@@ -22,6 +22,12 @@ public class Command implements Serializable {
 
     private Command(){}
 
+    /**
+     * Команада запрос на авторизацию от клиента
+     * @param login
+     * @param password
+     * @return
+     */
     public static Command authCommand(String login, String password){
         Command command = new Command();
         command.type = CommandType.AUTH;
@@ -30,6 +36,12 @@ public class Command implements Serializable {
 
     }
 
+    /**
+     * Команда подтвержение авторизации на сервере
+     * @param username
+     * @param files
+     * @return
+     */
     public static Command authOkCommand(String username, List<FileInfo> files) {
         Command command = new Command();
         command.type = CommandType.AUTH_OK;
@@ -64,6 +76,11 @@ public class Command implements Serializable {
         return command;
     }
 
+    /**
+     * Команда от клиента на получение списка файлов по текщей дирректории
+     * @param requestDir
+     * @return
+     */
     public static Command updateUserPath(String requestDir){
         Command command = new Command();
         command.type = CommandType.REQUEST_DIR;
@@ -71,6 +88,12 @@ public class Command implements Serializable {
         return command;
     }
 
+    /**
+     * Команда на обновление каталога файлов на клиенте
+     * @param files
+     * @param currentPath
+     * @return
+     */
     public static Command requestDirOk( List<FileInfo> files, String currentPath){
         Command command = new Command();
         command.type = CommandType.REQUEST_DIR_OK;
@@ -84,31 +107,53 @@ public class Command implements Serializable {
      * @param fileName - название файла
      * @return
      */
-    public static Command fileSendCommand(String filePath, String fileName){
+    public static Command fileSendCommand(String filePath, String fileName, long fileParts){
         Command command = new Command();
-        command.type = CommandType.FILE_SEND_REQEST;
-        command.data = new FileSendCommandData(filePath,fileName);
+        command.type = CommandType.FILE_UPLOAD_REQEST;
+        command.data = new FileSendCommandData(filePath,fileName, fileParts);
         return command;
     }
 
+    /**
+     * Команда готовности сервера на прием файла, отдельный поток поднят и обработчик переведен в цикл чтения частей файла из сокета.
+     * @return
+     */
     public static Command requestTransmiterOk(){
         Command command = new Command();
         command.type = CommandType.REQUEST_TRANSMITTER_OK;
         return command;
     }
 
-    public static Command requestReciveOk(){
+    /**
+     * Команда готовности сервера отдать файл
+     * @param fileParts - количество частей которые должен принять клиент
+     * @return
+     */
+    public static Command requestDownloadOk(long fileParts){
         Command command = new Command();
-        command.type = CommandType.REQUEST_RECIVE_OK;
+        command.type = CommandType.REQUEST_DOWNLOAD_OK;
+        command.data = new FileSendCommandData("","", fileParts);
         return command;
     }
 
-    public static Command fileReceiveCommand(String filePath, String fileName){
+    /**
+     * Запрос на получение файла с сервера
+     * @param filePath
+     * @param fileName
+     * @param fileParts
+     * @return
+     */
+    public static Command fileReceiveCommand(String filePath, String fileName, long fileParts){
         Command command = new Command();
-        command.type = CommandType.FILE_RECIVE_REQEST;
-        command.data = new FileSendCommandData(filePath,fileName);
+        command.type = CommandType.FILE_DOWNLOAD_REQEST;
+        command.data = new FileSendCommandData(filePath,fileName, fileParts);
         return command;
     }
 
+    public static Command closeConnection(){
+        Command command = new Command();
+        command.type = CommandType.CLOSE_CONNECTION;
+        return command;
+    }
 
 }

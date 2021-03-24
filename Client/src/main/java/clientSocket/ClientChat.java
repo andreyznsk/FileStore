@@ -72,6 +72,9 @@ public class ClientChat extends Application {
         authController.setNetwork(network);
 
         authDialogStage.setScene(new Scene(parent));
+        authDialogStage.setOnCloseRequest(event ->{
+            network.close();
+        });
         authDialogStage.show();
     }
     public static void showNetworkConfirmation(String errorDetails, String errorTitle, Stage dialogStage) {

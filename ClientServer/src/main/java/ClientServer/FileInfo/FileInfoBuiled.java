@@ -8,7 +8,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 public class FileInfoBuiled {
-    public static FileInfo infoBuilder(Path path) {
+    public static FileInfo infoBuilder(Path path) {//Класс собирает инфорамаю по пути
+        //Данный клас написан отдельно, т.к. содержит обект Path данный объект пока не получилось сеарилизовать
 
         try {
             String fileName = path.getFileName().toString();

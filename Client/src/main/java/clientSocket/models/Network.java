@@ -4,25 +4,28 @@ package clientSocket.models;
 import ClientServer.Command;
 import ClientServer.FileInfo.FileInfo;
 import ClientServer.commands.*;
-import ClientServer.fileTransmitter.FileReceiver;
-import ClientServer.fileTransmitter.FileSender;
 import clientSocket.ClientChat;
 import clientSocket.ViewController;
 import javafx.application.Platform;
 import org.apache.commons.lang3.SerializationUtils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Stack;
 
 import static ClientServer.Command.*;
-import static ClientServer.Command.updateUserPath;
+//import static ClientServer.Command.updateUserPath;
 
 public class Network {
-
+        private static final int BUFFER_SIZE = 1024;
         private static final String SERVER_ADDRESS = "localhost";
         private static final int SERVER_PORT = 9000;
 
@@ -33,7 +36,7 @@ public class Network {
         private final String host;
         private final int port;
 
-
+        private RandomAccessFile aFile = null;
         private ClientChat clientChat;
         private String nickname;
         private String remoutePath;
@@ -90,8 +93,9 @@ public class Network {
                         }
                     }
                 } catch (IOException e) {
-                   close();
+                   //close();
                     System.out.println("Соединение было потеряно!");
+                    //Platform.exit();
                 }
             });
             thread.setDaemon(true);
@@ -116,17 +120,31 @@ public class Network {
 
                 case REQUEST_TRANSMITTER_OK: {
                     System.out.println("Await for transmitt");
-                    sendFileToServer(userFile);
+                    sendFileToServer();
                     break;
                 }
 
-                case REQUEST_RECIVE_OK: {
-                    receiveFileFromServer(userFile);
+                case REQUEST_DOWNLOAD_OK: {
+                    FileSendCommandData data = (FileSendCommandData) command.getData();
+                    receiveFileFromServer(data.getFileParts());
                     Platform.runLater(viewController::updateClientDir);
                     break;
                 }
 
-                case ERROR: {
+                case CLOSE_CONNECTION: {
+                    System.out.println("Try to close connection!!!!");
+                    if (clientSocket != null && clientSocket.isConnected()) {
+                        try {
+                            clientSocket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    Platform.exit();
+                    break;
+                }
+
+                    case ERROR: {
                     ErrorCommandData data = (ErrorCommandData) command.getData();
                     Platform.runLater(() -> {
                         ClientChat.showNetworkError(data.getErrorMessage(), "Server error", null);
@@ -135,24 +153,43 @@ public class Network {
                 }
 
                 default:
-                    throw new IllegalArgumentException("Uknown command type: " + command.getType());
+                    throw new IllegalArgumentException("Unknown command type: " + command.getType());
             }
         }
 
-    private void receiveFileFromServer(String userFile) {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1);
-        int r;
-        try {
-            do {
-                r = clientSocket.read(byteBuffer);//Это костыль?
-            } while (r==0);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    private void receiveFileFromServer(long fileParts) {
+        System.out.println("File receive: " + userFile);
+            RandomAccessFile aFile = null;
+            try {
+                aFile = new RandomAccessFile(userFile, "rw");
+                ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+                FileChannel fileChannel = aFile.getChannel();
 
-        FileReceiver.readFileFromSocket(clientSocket, userFile);
+                while (fileParts > 0) {
+                    while (clientSocket.read(buffer) > 0) {
+                        buffer.flip();
+                        fileChannel.write(buffer);
+                        buffer.clear();
+                        System.out.println("File received parts: " + fileParts--);
+                           try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                    }
+                }
+
+                fileChannel.close();
+                System.out.println("End of file reached..Closing channel");
+
+            } catch (IOException e) {
+                if (fileParts != 0) System.err.println("Fail receive failed!!!");
+                e.printStackTrace();
+                //clientSocket.close();
+            }
 
     }
+
 
     private void processAuthResult(Command command) {
             switch (command.getType()) {
@@ -178,12 +215,25 @@ public class Network {
                     break;
                 }
 
-                case CONFIRMATION:
-
+                case CONFIRMATION: {
                     Platform.runLater(() -> {
                         ClientChat.showNetworkConfirmation("Регистрация прошла успешно", "Успешно", null);
                     });
                     break;
+                }
+
+                case CLOSE_CONNECTION: {
+                    System.out.println("Try to close connection!!!!");
+                    if (clientSocket != null && clientSocket.isConnected()) {
+                        try {
+                            clientSocket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    Platform.exit();
+                    break;
+                }
 
                 default:
                     throw new IllegalArgumentException("Uknown command type: " + command.getType());
@@ -192,24 +242,24 @@ public class Network {
 
         public void close() {
             //TODO Почему при закрытии удаленного сокета сервер съедает всю оперативную память и idea перестает запускаться?
-           /* try {
-                if (clientSocket != null && clientSocket.isConnected()) {
-                    clientSocket.close();
-                }
+            try {
+                System.out.println("Connection close!!!");
+                sendCommand(closeConnection());
+                clientSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
-            }*/
+            }
             Platform.exit();
 
         }
 
         private Command readCommand() throws IOException {
             Command command = null;
-            byte[] data = new byte[1024];
-            ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+            byte[] data = new byte[BUFFER_SIZE];
+            ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
             int r = clientSocket.read(byteBuffer);
             if(r!=0) {
-                while (r != 0) {
+                while (r > 0) {
                     byteBuffer.flip();
                     int i = 0;
                     while (byteBuffer.hasRemaining()) {
@@ -272,23 +322,60 @@ public class Network {
         System.out.println("Пересылемый файл " + fileName);
         this.userFile = userFile;
         try {
-            sendCommand(fileSendCommand(currentUserDir.peek(),fileName));
+       this.aFile = null;
+        aFile = new RandomAccessFile( new File(userFile), "r");
+        long fileParts;
+        if(aFile.length() % BUFFER_SIZE != 0) fileParts = aFile.length() / BUFFER_SIZE + 1;
+        else fileParts = aFile.length() / BUFFER_SIZE;
+            System.out.println("Parts to send: " + fileParts);
+            sendCommand(fileSendCommand(currentUserDir.peek(),fileName,fileParts));
          } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void sendFileToServer(String userFile)
+    /**
+     * Если сервер готов к приему файла начинаем слать файл
+     */
+    public void sendFileToServer()
     {
-            FileSender.sendFile(clientSocket, userFile);
+        try {
+            FileChannel inChannel = aFile.getChannel();
+            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+            int i = 0;
+            while (inChannel.read(buffer) > 0) {
+                System.out.println("Part: " + i);
+                try {
+                    Thread.sleep(500);//Иммитация медленного клиента
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                buffer.flip();
+                clientSocket.write(buffer);
+                buffer.clear();
+                i++;
+            }
+            System.out.println("End of file reached..");
+            //sendCommand(Command.endOfFile());
+            aFile.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
-
+    /**
+     * Запрос на прием файла с сервера
+     * @param targetPath - в какой файл положить файл на клиенте
+     * @param srcFileName
+     */
     public void requestReceiveFile(String targetPath, String srcFileName) {
         System.out.println("Пересылемый файл " + srcFileName);
         this.userFile = targetPath;
         try {
-            sendCommand(fileReceiveCommand(currentUserDir.peek(),srcFileName));
+            sendCommand(fileReceiveCommand(currentUserDir.peek(),srcFileName, 0l));
         } catch (Exception e) {
             e.printStackTrace();
 

@@ -3,16 +3,25 @@ package server.Handler;
 import ClientServer.FileInfo.FileInfo;
 import ClientServer.FileInfo.FileInfoBuiled;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static ClientServer.Command.requestDirOk;
+import static ClientServer.Command.requestTransmiterOk;
+
 public class FileHander {
 
     private final static String SERVER_PATH = "!ServerDisc/";
+    private final static int BUFFER_SIZE=1024;
 
     /**
      * Метод собирает коллекцию(лист) объектов класса FileInfo
@@ -32,6 +41,11 @@ public class FileHander {
        return null;
     }
 
+    /**
+     * Метод проверяет существует ли папка на сервере
+     * @param path
+     * @return
+     */
     public static boolean isSrvDirectory(String path){
         String serverPath = SERVER_PATH + path;
         Path srvPath = Paths.get(serverPath);
@@ -41,7 +55,7 @@ public class FileHander {
     /**
      * Метод формирования пути к папке и файлу клиента, принимаеи на вход /папка клиента/.../вложенные папки
      * @param path - относительный путь к папке клиента
-     * @return - объект класса Path к файлу/папке клиента на сервере
+     * @return Path - объект класса Path к файлу/папке клиента на сервере
      */
     public static Path getPathByCurrentDir(String path) {
         String serverPath = SERVER_PATH + path;
@@ -72,5 +86,92 @@ public class FileHander {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Статический мтод получения файла от клиента на сервер
+      * @param userPath - в какую дирректорию положить файл на сервере
+     * @param fileName - имя файла
+     * @param currrentUserDir - текущая дирректория клиента
+     * @param client - сокет канал
+     * @param nickname - ник
+     * @param clientHandler - обработчик текущего клиента
+     * @param fileParts - количество частей файла которые необходимо получить
+     */
+    public static void receiveFile(String userPath, String fileName, String currrentUserDir, SocketChannel client, String nickname, ClientHandler clientHandler,long fileParts){
+            Path p = FileHander.getPathByCurrentDir(userPath);// Формируем путь к каталогу на сервере
+            String userServerPath = p + "\\" + fileName;
+            System.out.println("Fiile recive: " + userServerPath);
+            try {
+                clientHandler.sendCommand(requestTransmiterOk());//Отправляем команду клиенту, что отдельный поток поднят и ждет получения файла
+                RandomAccessFile aFile;
+                try {
+                    aFile = new RandomAccessFile(userServerPath, "rw");
+                    ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+                    FileChannel fileChannel = aFile.getChannel();
+
+                    while (fileParts > 0) {//Читаем из сокета пока все части файла не получим
+                        while (client.read(buffer) > 0) {
+                            buffer.flip();
+                            fileChannel.write(buffer);
+                            buffer.clear();
+                            fileParts--;
+                        }
+                    }
+
+                    fileChannel.close();
+                    System.out.println("End of file reached..Closing channel");
+
+                } catch (IOException e) {
+                    if (fileParts!=0) System.err.println("Fail receive failed!!!");
+                    e.printStackTrace();
+                    client.close();
+                }
+                //После того как приняли файл посылаем клиенту команду на обновление списка файлов в текщей папке
+                List<FileInfo> files;
+                String currrentUserDirTmp = nickname + getUserPath(currrentUserDir);// добавляем каталог пользователя к запрашиваемому каталогу
+                files = FileHander.getFilesInfo(currrentUserDirTmp);
+                clientHandler.sendCommand(requestDirOk(files, currrentUserDir));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    }
+
+    /**
+     * Отдельный метод отправки файла в буфер и далее в
+     * @param aFile
+     * @param client
+     */
+    public static void sendFile(RandomAccessFile aFile,SocketChannel client) {
+        try {
+            FileChannel inChannel = aFile.getChannel();
+            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+            int i = 0;
+            while (inChannel.read(buffer) > 0) {
+                System.out.println("Part: " + i);
+                buffer.flip();
+                client.write(buffer);
+                buffer.clear();
+                i++;
+            }
+            System.out.println("End of file reached..");
+            //sendCommand(Command.endOfFile());
+            aFile.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    /**
+     * Метод убирает знак ~ из начала пути на диске сервера
+     * @param filePath
+     * @return
+     */
+    public static String getUserPath(String filePath) {
+        StringBuilder str = new StringBuilder();
+        str.append(filePath);
+        str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
+        return str.toString();
     }
 }

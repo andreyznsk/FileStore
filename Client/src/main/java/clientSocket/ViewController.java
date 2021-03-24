@@ -242,7 +242,7 @@ public class ViewController implements Initializable {
 
     @FXML
     public void menuItemFileExit(ActionEvent actionEvent) {
-        Platform.exit();
+        network.close();
     }
 
     public void btnPathAction(ActionEvent actionEvent) {
@@ -277,6 +277,7 @@ public class ViewController implements Initializable {
     public void copyBtn(ActionEvent actionEvent) {
         if (filesTable.isFocused()) {
             System.out.println("Нажат слева");
+            if(filesTable.getSelectionModel().getSelectedItem()==null) return;
             if(filesTable.getSelectionModel().getSelectedItem().getType()==DIRECTORY) return;
             String fileName = filesTable.getSelectionModel().getSelectedItem().getFileName();
             StringBuilder str = new StringBuilder();
@@ -288,6 +289,7 @@ public class ViewController implements Initializable {
         }
         if (remoteFilesTable.isFocused()) {
             System.out.println("Нажат справа");
+            if(remoteFilesTable.getSelectionModel().getSelectedItem()==null) return;
             if(remoteFilesTable.getSelectionModel().getSelectedItem().getType()==DIRECTORY) return;
             String srcFileName = remoteFilesTable.getSelectionModel().getSelectedItem().getFileName();
             String targetPath = pathField.getText() + "\\" + srcFileName;

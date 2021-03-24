@@ -2,110 +2,58 @@ package server.Handler;
 
 import ClientServer.Command;
 import ClientServer.FileInfo.FileInfo;
-import ClientServer.commands.AuthCommandData;
-import ClientServer.commands.AuthRegData;
 import ClientServer.commands.*;
-import ClientServer.fileTransmitter.FileReceiver;
-import ClientServer.fileTransmitter.FileSender;
 import org.apache.commons.lang3.SerializationUtils;
 import server.MyServer;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 
 import static ClientServer.Command.*;
-
+import static ClientServer.Command.closeConnection;
 
 public class ClientHandler {
 
     private final MyServer myServer;
     private final SocketChannel client;
 
+    private final int BUFFER_SIZE; // Стандартный размер буфера
     private String nickname;
-    private String currrentUserDir;
+    private String currentUserDir; //Текущая дирректория в которой находится клиент
     private String userPath;
-    private String requestedDir;
+    private RandomAccessFile aFile = null;
 
+    /**
+     * Конструктор создает экземпляр класса Обработчика клиентов
+     * @param myServer
+     * @param client
+     */
     public ClientHandler(MyServer myServer, SocketChannel client) {
         this.myServer = myServer;
         this.client = client;
-    }
-
-    public void handle() {
-        try {
-                authentication(); // Если подключился новый клиент нужно пройти метод аутентификации
-                readMessages(); // Если атентификация прошла, переходим в режим прослушивания команд от клиента
-            } catch (IOException e) {
-              e.printStackTrace();
-            } finally {
-                try {
-                    closeConnection();
-                } catch (IOException e) {
-                  System.err.println("Failed to close connection!");
-                }
-            }
-
+        BUFFER_SIZE = 1024;
     }
 
     /**
-     * отдельный поток поднимается для передачи фала от клиента на сервер
-     * @param userPath - путь на сервере вида ./!ServerDisc/[Папка клиента]/.../имя файла
-     * @param fileName - имя файла на сервере
+     * Авторизация клиента
+     * @throws IOException
      */
-    private void receiveFile(String userPath, String fileName) {
+    public void authentication() throws IOException {
 
-                Path p = FileHander.getPathByCurrentDir(userPath);// Формируем путь к каталогу на сервере
-                String userServerPath = p + "\\" + fileName;
-                System.out.println("Fiile recive: " + userServerPath);
-            try {
-                sendCommand(requestTransmiterOk());
-                ByteBuffer byteBuffer = ByteBuffer.allocate(1);
-                int r = client.read(byteBuffer);
-                while (r==0)r = client.read(byteBuffer);//Это костыль?
-                FileReceiver.readFileFromSocket(client, userServerPath);
-                List<FileInfo> files;
-                System.out.println("Путь от которого формируем файлы: " + currrentUserDir);
-                StringBuilder str = new StringBuilder();
-                str.append(currrentUserDir);
-                str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
-                String currrentUserDirTmp = nickname + str;// добавляем каталог пользователя к запрашиваемому каталогу
-                System.out.println("Искомая дирректория: " + currrentUserDirTmp);
-                files = FileHander.getFilesInfo(currrentUserDirTmp);
-                sendCommand(requestDirOk(files, currrentUserDir));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-    }
-
-
-
-
-    private void sendFile(String requestDir, String fileName) {
-
-            Path p = FileHander.getPathByCurrentDir(requestDir);
-            String userServerPath = p + "\\" + fileName;
-            System.out.println("Fiile recive: " + userServerPath);
-            FileSender.sendFile(client,userServerPath);
-
-
-    }
-
-
-
-
-    private void authentication() throws IOException {
-        while (true) {
-            Command command = readCommand();
-            if (command == null) {
-                continue;
-            }
+        Command command = null;
+        try {
+            command = readCommand();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (command==null) return;
             switch (command.getType()) {
                 case CREATE_NEW_USER: {
                 AuthRegData data = (AuthRegData) command.getData();
@@ -115,9 +63,9 @@ public class ClientHandler {
                 if (myServer.getAuthService().insertUser(login,password,nickname)==0) {
                     System.out.println("Ошибка создания пользователя");
                     sendCommand(errorCommand("Ошибка создания пользователя"));
-                    continue;
+                    return;
                 } else sendCommand(confirmationCommand("Регистрация прошла успешно!"));
-                break;
+                return;
             }
                 case UPDATE_USER: {
                 AuthRegData data = (AuthRegData) command.getData();
@@ -126,156 +74,230 @@ public class ClientHandler {
                 String nickname = data.getNickname();
 
                 if (myServer.getAuthService().updateUser(login,password,nickname)==0) {
-
                     sendCommand(errorCommand("Логин или пароль некорркетны!"));
                     System.out.println("Логин или пароль некорркетны!");
-                    continue;
+                    return;
                 } else {
                     sendCommand(confirmationCommand("Ник успешно изменен."));
                     System.out.println("Ник успешно изменен.");
                 }
-                break;
+                    return;
             }
                 case AUTH: {
                     AuthCommandData data = (AuthCommandData) command.getData();
                     String login = data.getLogin();
-
                     String password = data.getPassword();
-                    String[] nickAndPath = myServer.getAuthService().getNickByLoginPass(login, password);
-
-                    if (nickAndPath[0] == null) {
+                    String nickName = myServer.getAuthService().getNickByLoginPass(login, password);
+                    System.out.println(nickName);
+                    if (nickName == null) {
                         sendCommand(errorCommand("Некорректные логин или пароль!"));
                         System.out.println("Некорректные логин или пароль!");
-                        continue;
+                        return;
                     }
-                    setNickname(nickAndPath[0]);
-                    FileHander.isSrvDirectoryExist(nickAndPath[1]);
-                    List<FileInfo> files = FileHander.getFilesInfo(nickAndPath[1]);
-                    sendCommand(authOkCommand(getNickname(), files));
-                    System.out.println("Пользователь '%s' подключился!");
-                    //myServer.subscribe(this);
+                    if (myServer.isNickBusy(nickName)) {
+                        sendCommand(errorCommand("Пользователь уже подключен"));
+                        return;
+                    }
+                    setNickname(nickName);
+                    FileHander.isSrvDirectoryExist(userPath);//Проверка существования папка пользователя
+                    List<FileInfo> files = FileHander.getFilesInfo(userPath);//Список файлов в папке пользователя
+                    sendCommand(authOkCommand(this.nickname, files));
+                    System.out.printf("Пользователь '%s' подключился!\n",this.nickname);
+                    myServer.subscribe(this);
+                    return;
+
+                }
+                case CLOSE_CONNECTION: {
+                    myServer.unsubscribe(this);
+                    sendCommand(closeConnection());
+                    client.close();
                     return;
                 }
                 default:
                     throw new IllegalArgumentException("Unknown command type: " + command.getType());
             }
-        }
     }
 
+
     /**
-     * Бесконечный цикл прослушивания команд от клиента на сервер
+     * Прочитать команду от пользователя
      * @throws IOException
      */
-    private void readMessages() throws IOException {
-        while (true) {
-            Command command = readCommand();
-            if (command == null) {
-                continue;
+    public void processClient()  {
+        Command command = null;
+        try {
+            command = readCommand();
+        } catch (IOException e) {
+            System.err.println("Connection close in class: " + this);
+            try {
+                myServer.unsubscribe(this);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+            e.printStackTrace();
+        }
+
+        if (command == null) {
+                return;
             }
 
             switch (command.getType()) {
 
-                /**
+                /*
                  * Команда на обновление списка файлов+папок сервера на стороне клиента
                  */
                 case REQUEST_DIR: {
                     RequestUserDir data = (RequestUserDir) command.getData();
-                    StringBuilder str = new StringBuilder();
-                    requestedDir = data.getRequestDir();
-                    str.append(requestedDir);
-                    str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
-                    currrentUserDir = nickname + str;// добавляем каталог пользователя к запрашиваемому каталогу
-                    System.out.println("Искомая дирректория: " + currrentUserDir);
-                    if(FileHander.isSrvDirectory(currrentUserDir)) {
+                    String tmp = FileHander.getUserPath(data.getRequestDir());//Метод убирает знак ~
+                    currentUserDir = nickname + tmp;// добавляем каталог пользователя к запрашиваемому каталогу
+                    if(FileHander.isSrvDirectory(currentUserDir)) {
                         List<FileInfo> files;
-                        files = FileHander.getFilesInfo(currrentUserDir); // формируем список файлов сервера для клиента
-                        sendCommand(requestDirOk(files, requestedDir));}
+                        files = FileHander.getFilesInfo(currentUserDir); // формируем список файлов сервера для клиента
+                        try {
+                            sendCommand(requestDirOk(files, data.getRequestDir()));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
 
                     break;
                 }
 
-                /**
-                 * Команада щапрос на соединение на прием файла от клиента на сервер
+                /*
+                 * Команада запрос на соединение на прием файла от клиента на сервер
                  */
-                case FILE_SEND_REQEST:{
+                case FILE_UPLOAD_REQEST:{
                     FileSendCommandData data = (FileSendCommandData) command.getData();
-                    StringBuilder str = new StringBuilder();
-                    currrentUserDir = data.getFilePath();
-                    str.append(data.getFilePath());
-                    str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
-                    String requestDir = nickname + str;// добавляем каталог пользователя к запрашиваемому каталогу
-                    receiveFile(requestDir, data.getFileName());// Поднимаем параллельный поток для приема файла
-                    //sendCommand(requestTransmiterOk());
+                    currentUserDir = data.getFilePath();
+                    String tmp = FileHander.getUserPath(data.getFilePath());
+                    String requestDir = nickname + tmp;// добавляем каталог пользователя к запрашиваемому каталогу
+                    receiveFile(requestDir, data.getFileName(), data.getFileParts());// Поднимаем параллельный поток для приема файла
                     break;
                 }
-                case FILE_RECIVE_REQEST: {
+                /* Команада запрос на получение файла
+                * */
+                case FILE_DOWNLOAD_REQEST: {
                     FileSendCommandData data = (FileSendCommandData) command.getData();
-                    StringBuilder str = new StringBuilder();
-                    currrentUserDir = data.getFilePath();
-                    str.append(data.getFilePath());
-                    str.delete(0,1);//присылаемая строка с сервера вида ~/[текущий каталог], удаляем первый символ
-                    String requestDir = nickname + str;// добавляем каталог пользователя к запрашиваемому каталогу
-                    sendCommand(requestReciveOk());
-                    sendFile(requestDir, data.getFileName());// Поднимаем параллельный поток для приема файла
+                    currentUserDir = data.getFilePath();//Запомнить путь в который надо положить файл
+                    String tmp = FileHander.getUserPath(data.getFilePath());//Метод убирает знак ~
+                    String requestDir = nickname + tmp;// добавляем каталог пользователя к запрашиваемому каталогу
+                    sendFile(requestDir, data.getFileName());// Поднимаем параллельный поток для отправки файла файла
                     break;
                 }
-
-
+                /*
+                Если клиент разорвал соединение, закрыл окно или просто отключился
+                 */
+                case CLOSE_CONNECTION: {
+                    try {
+                        myServer.unsubscribe(this);
+                        sendCommand(closeConnection());
+                        client.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                }
                 case END:
                     return;
                 default:
                     throw new IllegalArgumentException("Unknown command type: " + command.getType());
-
             }
-        }
     }
 
-    public String getNickname() {
-        return nickname;
-    }
-
-    public void sendCommand(Command command) throws IOException {
+    /**
+     * Послать команду клиенту
+     * @param command
+     * @throws IOException
+     */
+   public void sendCommand(Command command) throws IOException {
         byte[] data = SerializationUtils.serialize(command);
         client.write(ByteBuffer.wrap(data));
     }
 
+    /**
+     * Прочитать команду от клиента
+     * @return
+     * @throws IOException
+     */
     private Command readCommand() throws IOException {
         Command command = null;
-            byte[] data = new byte[1024];
-            ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+            byte[] data = new byte[BUFFER_SIZE];
+            ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+        try {
             int r = client.read(byteBuffer);
-            if(r!=0) {
-                //System.out.println(r);
-                while (r != 0) {
+            if (r != 0) {//Проверка если пустой буфер, то чтиать не надо, иногда проскакивает пустка команда
+                while (r > 0) {
                     byteBuffer.flip();
                     int i = 0;
                     while (byteBuffer.hasRemaining()) {
                         data[i] = byteBuffer.get();
-                        //System.out.println(data[i]);
                         i++;
                     }
                     byteBuffer.clear();
                     r = client.read(byteBuffer);
                 }
-                //System.out.println(data);
-                command = SerializationUtils.deserialize(data);
-
+                command = SerializationUtils.deserialize(data);//Внешная библиотека сериализации
             }
+        } catch (SocketException e) {
+            System.out.println("Connection reset");
+            client.close();
+            return null;
+        }
             return command;
     }
 
-
-
-    private void closeConnection() throws IOException {
-        //myServer.unsubscribe(this);
-        client.close();
-
+    /**
+     * отдельный поток поднимается для загрузки фала от клиента на сервер
+     * @param userPath - путь на сервере вида ./!ServerDisc/[Папка клиента]/.../имя файла
+     * @param fileName - имя файла на сервере
+     * @param fileParts - Количество частей файла которые необходимо прнять
+     */
+    private void receiveFile(String userPath, String fileName, long fileParts) {
+        Thread thread = new Thread(() -> FileHander.receiveFile(userPath, fileName, currentUserDir, client, nickname, this, fileParts));
+        thread.setDaemon(true);
+        thread.start();
     }
 
+
+    /**
+     * Метод отправки файл клиенту
+     * @param requestDir - запрашиваемая папка из которой нужно получить файл
+     * @param fileName - имя файла
+     */
+    private void sendFile(String requestDir, String fileName) {
+        try {
+            Path p = FileHander.getPathByCurrentDir(requestDir);
+            aFile = new RandomAccessFile(new File(p + "\\" + fileName), "r");
+            long fileParts;
+            //Вычислить сколько будет пересылаемых частей
+            if (aFile.length() % BUFFER_SIZE != 0) fileParts = aFile.length() / BUFFER_SIZE + 1;
+            else fileParts = aFile.length() / BUFFER_SIZE;
+            System.out.println("Parts to send: " + fileParts);
+            sendCommand(requestDownloadOk(fileParts));//Посылаем команды о готовности посылать файл,
+            // клиент в этот момен переходит в режим чтения данных из буфера
+            // клиент не закрывает цикл чтения пока не получит все части файла
+            Thread thread = new Thread(() ->
+                    FileHander.sendFile(aFile, client));//Отдельный поток читает данные из файла и посылает их клиенту в буфер
+            thread.setDaemon(true);
+            thread.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+
+        }
+    }
+
+    /**
+     * Присваивает ник, и дирректорию клиента, устанавливает начальный путь
+     * @param nickname
+     */
     private void setNickname(String nickname) {
         this.nickname = nickname;
         this.userPath = nickname;
-        this.currrentUserDir = "~";
+        this.currentUserDir = "~";
+    }
+
+    public String getNickname() {
+        return nickname;
     }
 }
 
