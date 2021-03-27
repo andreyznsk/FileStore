@@ -1,9 +1,8 @@
 package ClientServer.commands;
 
-import ClientServer.FileInfo;
+import ClientServer.FileInfo.FileInfo;
 
 import java.io.Serializable;
-import java.nio.file.Path;
 import java.util.List;
 
 public class AuthOkCommandData implements Serializable {

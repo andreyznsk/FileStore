@@ -1,9 +1,9 @@
-package client;
+package clientSocket;
 
 
-import ClientServer.FileInfo;
-import client.models.ClientChatState;
-import client.models.Network;
+import ClientServer.FileInfo.FileInfo;
+import clientSocket.models.ClientChatState;
+import clientSocket.models.Network;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -13,9 +13,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 
 
@@ -74,6 +72,9 @@ public class ClientChat extends Application {
         authController.setNetwork(network);
 
         authDialogStage.setScene(new Scene(parent));
+        authDialogStage.setOnCloseRequest(event ->{
+            network.close();
+        });
         authDialogStage.show();
     }
     public static void showNetworkConfirmation(String errorDetails, String errorTitle, Stage dialogStage) {

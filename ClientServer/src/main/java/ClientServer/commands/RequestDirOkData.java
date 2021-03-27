@@ -1,6 +1,6 @@
 package ClientServer.commands;
 
-import ClientServer.FileInfo;
+import ClientServer.FileInfo.FileInfo;
 
 import java.io.Serializable;
 import java.util.List;

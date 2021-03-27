@@ -1,6 +1,6 @@
-package client;
+package clientSocket;
 
-import client.models.Network;
+import clientSocket.models.Network;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;

@@ -1,17 +1,15 @@
-package client;
+package clientSocket;
 
-import ClientServer.FileInfo;
-import ClientServer.FileInfoBuiled;
-import client.models.Network;
+import ClientServer.FileInfo.FileInfo;
+import ClientServer.FileInfo.FileInfoBuiled;
+import clientSocket.models.Network;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -26,6 +24,7 @@ import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
 import static ClientServer.FileInfo.FileType.DIRECTORY;
+
 
 public class ViewController implements Initializable {
 
@@ -48,6 +47,25 @@ public class ViewController implements Initializable {
 
    @FXML
    TextField remotePathField;
+
+    private static TableCell<FileInfo, Long> call(TableColumn<FileInfo, Long> column) {
+        return new TableCell<FileInfo, Long>() {
+            @Override
+            protected void updateItem(Long item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    String text = String.format("%,d bytes", item);
+                    if (item == -1L) {
+                        text = "[DIR]";
+                    }
+                    setText(text);
+                }
+            }
+        };
+    }
 
 
     @Override
@@ -95,9 +113,7 @@ public class ViewController implements Initializable {
         remoteFilesTable.getColumns().addAll(fileTypeColumn, fileNameColumn, fileSizeColumn, fileDateColumn);
         remoteFilesTable.getSortOrder().add(fileTypeColumn);
 
-        remoteFilesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
+        remoteFilesTable.setOnMouseClicked(event-> {
                 if (event.getClickCount() == 2) {
                     String requestPath = remoteFilesTable.getSelectionModel().getSelectedItem().getFileName();
                     try {
@@ -107,7 +123,7 @@ public class ViewController implements Initializable {
                     }
                 }
             }
-        });
+        );
 
 
 
@@ -172,16 +188,13 @@ public class ViewController implements Initializable {
             disksBox.getItems().add(p.toString());
         }
 
-        filesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
+        filesTable.setOnMouseClicked(event-> {
                 if (event.getClickCount() == 2) {
                     Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFileName());
                     if (Files.isDirectory(path)) {
                         updateList(path);
                     }
                 }
-            }
         });
         updateList(Paths.get("."));
     }
@@ -203,7 +216,7 @@ public class ViewController implements Initializable {
         }
     }
 
-    public void updateList(){
+    public void updateClientDir(){
         try {
             Path path = Paths.get(pathField.getText());
             filesTable.getItems().clear();
@@ -229,7 +242,7 @@ public class ViewController implements Initializable {
 
     @FXML
     public void menuItemFileExit(ActionEvent actionEvent) {
-        Platform.exit();
+        network.close();
     }
 
     public void btnPathAction(ActionEvent actionEvent) {
@@ -264,21 +277,23 @@ public class ViewController implements Initializable {
     public void copyBtn(ActionEvent actionEvent) {
         if (filesTable.isFocused()) {
             System.out.println("Нажат слева");
+            if(filesTable.getSelectionModel().getSelectedItem()==null) return;
             if(filesTable.getSelectionModel().getSelectedItem().getType()==DIRECTORY) return;
             String fileName = filesTable.getSelectionModel().getSelectedItem().getFileName();
             StringBuilder str = new StringBuilder();
             str.append(pathField.getText());
             str.append("\\");
             str.append(fileName);
-            network.requestTransmitterConnectionToServer(str.toString(),fileName);
+            network.requestSendFile(str.toString(),fileName);
 
         }
         if (remoteFilesTable.isFocused()) {
             System.out.println("Нажат справа");
+            if(remoteFilesTable.getSelectionModel().getSelectedItem()==null) return;
             if(remoteFilesTable.getSelectionModel().getSelectedItem().getType()==DIRECTORY) return;
             String srcFileName = remoteFilesTable.getSelectionModel().getSelectedItem().getFileName();
             String targetPath = pathField.getText() + "\\" + srcFileName;
-            network.requestTransmitterConnectionToClient(targetPath,srcFileName);
+            network.requestReceiveFile(targetPath,srcFileName);
             }
     }
 }

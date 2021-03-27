@@ -63,8 +63,8 @@ public class DataBaseMySqlAuthService implements AuthService {
     }
 
     @Override
-    public String[] getNickByLoginPass(String login, String password) {//Изменил на метод идентификации из БД.
-        String[] str = new String[2];
+    public String getNickByLoginPass(String login, String password) {//Изменил на метод идентификации из БД.
+        String str;
         try {//Блок провеки через подготовленный запрос
             psSelect.setString(1,login);
             psSelect.setString(2,password);
@@ -73,8 +73,7 @@ public class DataBaseMySqlAuthService implements AuthService {
                 System.out.println("NickName: " + rs.getString(1));
                 System.out.println("DefDir: " + rs.getString(2));
                 System.out.println("Auth OK");
-                 str[0] = rs.getString(1);
-                 str[1] = rs.getString(2);
+                 str = rs.getString(1);
                  return str;
             }
 
@@ -137,10 +136,10 @@ public class DataBaseMySqlAuthService implements AuthService {
             psUpdate.setString(2, login);
             psUpdate.setString(3, password);
             //System.out.printf("Login: %s\npassword: %s\nNickname: %s\n",login,password,nickname);
-            String[] oldNicname = getNickByLoginPass(login, password);
+            String oldNicname = getNickByLoginPass(login, password);
 
             File file = null;
-            if (oldNicname[0] != null)
+            if (oldNicname != null)
 
 
             //System.out.println("oldNick = " + oldNicname);

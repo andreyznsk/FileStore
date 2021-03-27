@@ -1,4 +1,5 @@
-package ClientServer;
+package ClientServer.FileInfo;
+
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -7,13 +8,14 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 public class FileInfoBuiled {
-    public static FileInfo infoBuilder(Path path) {
+    public static FileInfo infoBuilder(Path path) {//Класс собирает инфорамаю по пути
+        //Данный клас написан отдельно, т.к. содержит обект Path данный объект пока не получилось сеарилизовать
 
         try {
             String fileName = path.getFileName().toString();
             long size = Files.size(path);
-            FileInfo.FileType type = Files.isDirectory(path) ? FileInfo.FileType.DIRECTORY : FileInfo.FileType.FILE;
-            if (type == FileInfo.FileType.DIRECTORY) {
+            FileType type = Files.isDirectory(path) ? FileType.DIRECTORY : FileType.FILE;
+            if (type == FileType.DIRECTORY) {
                 size = -1L;
             }
             LocalDateTime lastModified = LocalDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneOffset.ofHours(0));
