@@ -171,11 +171,11 @@ public class Network {
                         fileChannel.write(buffer);
                         buffer.clear();
                         System.out.println("File received parts: " + fileParts--);
-                           try {
+                         /*  try {
                                 Thread.sleep(500);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
-                            }
+                            }*/
                     }
                 }
 
