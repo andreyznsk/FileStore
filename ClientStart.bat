@@ -1,0 +1,1 @@
+java -jar --module-path E:\JetBrains\javafx-sdk-11.0.2\lib --add-modules javafx.controls,javafx.fxml Client/target/Client.jar

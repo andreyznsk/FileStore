@@ -11,7 +11,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ClientServer</artifactId>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <properties>
         <java.version>14</java.version>
@@ -37,10 +37,7 @@
                 <version>3.2.0</version>
                 <configuration>
                     <goal>jar:inplace</goal>
-                    <archive>
-                        <manifestFile>META-INF/MANIFEST.MF</manifestFile>
-                    </archive>
-                    <outputDirectory>artifacts</outputDirectory>
+                    <!--<outputDirectory>artifacts</outputDirectory>-->
                 </configuration>
             </plugin>
         </plugins>
