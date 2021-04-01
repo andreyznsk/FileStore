@@ -20,7 +20,7 @@ import static ClientServer.Command.requestTransmiterOk;
 
 public class FileHander {
 
-    private final static String SERVER_PATH = "!ServerDisc/";
+    private final static String SERVER_PATH = "!ServerDisk/";
     private final static int BUFFER_SIZE=1024;
 
     /**
