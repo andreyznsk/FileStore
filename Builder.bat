@@ -1,2 +1,3 @@
+mkdir !ServerDisk
 mvn package
 
