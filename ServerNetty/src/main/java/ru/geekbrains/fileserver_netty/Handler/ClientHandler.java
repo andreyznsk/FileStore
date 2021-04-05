@@ -57,12 +57,12 @@ public class ClientHandler {
                 String login = data.getLogin();
                 String password = data.getPassword();
                 String nickname = data.getNickname();
-               /* if (myServer.getAuthService().insertUser(login,password,nickname)==0) {
+                if (myServer.getAuthService().insertUser(login,password,nickname)==0) {
                     System.out.println("Ошибка создания пользователя");
                     sendCommand(errorCommand("Ошибка создания пользователя"));
                     return;
                 } else sendCommand(confirmationCommand("Регистрация прошла успешно!"));
-                return;*/
+                return;
             }
                 case UPDATE_USER: {
                 AuthRegData data = (AuthRegData) command.getData();
@@ -70,14 +70,14 @@ public class ClientHandler {
                 String password = data.getPassword();
                 String nickname = data.getNickname();
 
-             /*   if (myServer.getAuthService().updateUser(login,password,nickname)==0) {
+                if (myServer.getAuthService().updateUser(login,password,nickname)==0) {
                     sendCommand(errorCommand("Логин или пароль некорркетны!"));
                     System.out.println("Логин или пароль некорркетны!");
                     return;
                 } else {
                     sendCommand(confirmationCommand("Ник успешно изменен."));
                     System.out.println("Ник успешно изменен.");
-                }*/
+                }
                     return;
             }
                 case AUTH: {

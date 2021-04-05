@@ -156,4 +156,10 @@ public class Command implements Serializable {
         return command;
     }
 
+    public static Command fileDataCommand(long filePosition, byte[] data){
+        Command command = new Command();
+        command.type = CommandType.FILE_DATA;
+        command.data = new FileDataCommand(filePosition, data);
+        return command;
+    }
 }

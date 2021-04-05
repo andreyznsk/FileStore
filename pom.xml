@@ -12,6 +12,8 @@
         <module>Server</module>
         <module>Client</module>
         <module>ClientServer</module>
+        <module>ServerNetty</module>
+        <module>ClientNetty</module>
     </modules>
 
     <properties>
