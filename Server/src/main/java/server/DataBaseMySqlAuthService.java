@@ -5,9 +5,9 @@ import java.io.File;
 import java.sql.*;
 
 public class DataBaseMySqlAuthService implements AuthService {
-    private static final String url = "jdbc:mysql://localhost:3306/usersforfilesorage";
+    private static final String url = "jdbc:mysql://localhost:3306/filestorage";
     private static final String user = "filestorage";
-    private static final String password = "passwd";
+    private static final String password = "passwd_2021_!@#";
     private static Connection connection;
     private static Statement stmt;
     private static PreparedStatement psSelect;
