@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.geekbrains.fileserver_netty.RegController">
+    <children>
+        <Label layoutX="14.0" layoutY="133.0" text="Ник:" />
+        <Label layoutX="21.0" layoutY="25.0" text="Логин:" />
+        <Label layoutX="14.0" layoutY="82.0" text="Пароль:" />
+        <TextField fx:id="loginField" layoutX="87.0" layoutY="21.0" />
+        <PasswordField fx:id="passwordField" layoutX="87.0" layoutY="78.0" />
+        <TextField fx:id="nicknameField" layoutX="87.0" layoutY="129.0" />
+
+        <Button fx:id="newUsreButton" layoutX="10.0" layoutY="188.0" mnemonicParsing="false" onAction="#executeRegNew" prefHeight="25.0" prefWidth="80.0" text="Новый" />
+        <Button fx:id="updateUserButton" layoutX="110.0" layoutY="188.0" mnemonicParsing="false" onAction="#executeRegUpdate" prefHeight="25.0" prefWidth="120.0" text="Изменить Ник" />
+
+    </children>
+
+</AnchorPane>
