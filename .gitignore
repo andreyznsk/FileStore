@@ -6,3 +6,10 @@ FileStore.iml
 /Client/target/
 /Server/target/
 /ClientServer/target/
+/ServerNetty/target/
+/Client/Client.iml
+/ClientNetty/ClientNetty.iml
+/ClientNetty/target/
+/ClientServer/ClientServer.iml
+/Server/Server.iml
+/ServerNetty/ServerNetty.iml
