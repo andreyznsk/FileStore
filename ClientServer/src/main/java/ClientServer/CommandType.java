@@ -15,4 +15,5 @@ public enum CommandType {
     FILE_DOWNLOAD_REQEST,
     REQUEST_DOWNLOAD_OK,
     CLOSE_CONNECTION,
+    FILE_DATA
 }
